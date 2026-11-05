@@ -74,12 +74,13 @@ async function listTree(root: string, base: string, depth: number, output: strin
   }
 }
 
-export function createWorkspaceTools(options: WorkspaceToolsOptions) {
-  const rootPromise = workspaceRoot(options.rootDir);
-  const requestApproval: ApprovalHandler = async (request) => {
-    const approved = options.requestApproval
-      ? await options.requestApproval(request)
-      : false;
+export function createAuditedApprovalHandler(
+  rootDir: string,
+  handler: ApprovalHandler,
+): ApprovalHandler {
+  const rootPromise = workspaceRoot(rootDir);
+  return async (request) => {
+    const approved = await handler(request);
     const root = await rootPromise;
     const auditDir = resolve(root, ".nexcode");
     await mkdir(auditDir, { recursive: true });
@@ -90,6 +91,10 @@ export function createWorkspaceTools(options: WorkspaceToolsOptions) {
     );
     return approved;
   };
+}
+
+export function createWorkspaceTools(options: WorkspaceToolsOptions) {
+  const requestApproval: ApprovalHandler = options.requestApproval ?? (async () => false);
 
   const readTools = {
     list_files: tool({
