@@ -2,65 +2,75 @@
 
 Agente de programação open source, local e independente de provedor. O NEXCODE combina uma TUI OpenTUI, ferramentas de workspace, aprovações explícitas, adaptadores de IA e integração MCP por stdio.
 
-## Recursos implementados
+## Recursos
 
 - TUI de terminal escura com detalhes verdes.
 - Modos **Development**, **Planning** e **Ask**.
-- Provedores: NVIDIA NIM, OpenAI, Anthropic, Google Gemini, Ollama e endpoints OpenAI-compatible.
-- Ferramentas do workspace: listar arquivos, ler arquivos e pesquisar texto.
-- No modo Development: criar/substituir arquivos e executar programas com aprovação explícita.
-- Comandos executados diretamente, sem shell, com diretório de trabalho limitado ao repositório, ambiente reduzido, limite de tempo e saída limitada.
-- MCP stdio: inicialização do servidor e cada chamada de ferramenta exigem aprovação.
-- Bloqueio de leitura de arquivos `.env`, `.git` e `node_modules`; bloqueio de caminhos fora do workspace e escritas por symlink.
-- Registro local das decisões de aprovação em `.nexcode/audit.jsonl`.
-- PNPM workspace, Turbo, TypeScript, Vitest e CI com lockfile congelado.
+- NVIDIA NIM, OpenAI, Anthropic, Google Gemini, Ollama e endpoints OpenAI-compatible.
+- Ferramentas de workspace com permissões e aprovações explícitas.
+- MCP por stdio, com aprovação antes de iniciar servidores e executar ferramentas.
+- Histórico limitado e limites configuráveis de chamadas para reduzir consumo em dispositivos modestos.
+- PNPM workspace, Turbo, TypeScript, Vitest e CI multiplataforma.
 
-## Modos
+## Compatibilidade
 
-| Tecla | Modo | Permissões |
+| Ambiente | Caminho recomendado | Observações |
 |---|---|---|
-| F1 | `development` | Leitura, pesquisa, escrita e comandos; escrita/comando sempre pedem aprovação |
-| F2 | `planning` | Apenas leitura e pesquisa; sem comandos, MCP ou escrita |
-| F3 | `ask` | Conversa sem ferramentas do workspace |
+| Android / Termux | Debian via `proot-distro` + Bun + pnpm | Evita incompatibilidades de bibliotecas nativas do Android com dependências Linux desktop |
+| Linux x64 / ARM64 | Bun + Node.js + pnpm | Debian, Ubuntu, Arch e Kali |
+| Windows 10/11 | PowerShell + Bun + Node.js + pnpm | Também funciona no Windows Terminal |
+| macOS | Bun + Node.js + pnpm | Apple Silicon e Intel |
 
-Quando uma ação exigir aprovação, a TUI mostra o resumo, os argumentos e o contexto. Pressione **Y** para aprovar ou **N** para negar. Negar não executa a ação.
-
-## Requisitos
-
-- Git
-- Node.js **22.12+**
-- pnpm **10.20.0**
-- Bun **1.3.14+** (runtime da OpenTUI)
-
-O OpenTUI usa FFI nativo. O runtime Bun é o caminho suportado pelo projeto; Node.js precisa de versão 26.4+ e `--experimental-ffi`.
-
-Confira:
-
-```bash
-node --version
-pnpm --version
-bun --version
-git --version
-```
+**Requisitos:** Git, Node.js 22.12+, pnpm 10.20.0+ e Bun 1.3.14+. O Bun executa a TUI OpenTUI; Node.js é usado para ferramentas de build e testes.
 
 ## Instalação
 
-### Linux
+### Android / Termux (recomendado: Debian no proot)
 
-Instale Git, Node.js 22.12+ e habilite PNPM:
+No Termux:
 
 ```bash
+pkg update -y
+pkg install -y git proot-distro
+proot-distro install debian
+proot-distro login debian
+```
+
+Dentro do Debian:
+
+```bash
+apt update
+apt install -y git curl ca-certificates unzip
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt install -y nodejs
 corepack enable
 corepack prepare pnpm@10.20.0 --activate
 curl -fsSL https://bun.sh/install | bash
 ```
 
-Abra um novo terminal, depois:
+Feche e abra novamente a sessão Debian, então:
 
 ```bash
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
 pnpm install --frozen-lockfile
+pnpm dev:cli
+```
+
+Dica para celulares com pouca memória: feche aplicativos em segundo plano e mantenha os limites conservadores padrão. Evite iniciar vários servidores MCP simultaneamente.
+
+### Linux
+
+Instale Git, Node.js 22.12+ e Bun. Ative o pnpm:
+
+```bash
+corepack enable
+corepack prepare pnpm@10.20.0 --activate
+curl -fsSL https://bun.sh/install | bash
+git clone https://github.com/stylesxzz/NexCode.git
+cd NexCode
+pnpm install --frozen-lockfile
+pnpm dev:cli
 ```
 
 ### Windows (PowerShell)
@@ -74,22 +84,25 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
 pnpm install --frozen-lockfile
+pnpm dev:cli
 ```
 
 ### macOS
 
-Instale Git, Node.js e Bun. Ative PNPM com Corepack e siga os mesmos comandos de clone e instalação da seção Linux.
-
-### Termux / Android
-
-A compatibilidade do runtime nativo Bun + OpenTUI no Termux/Android não está garantida. Use uma distribuição Linux suportada ou computador para executar a TUI.
+Instale Git, Node.js 22.12+ e Bun. Ative pnpm com Corepack e siga os comandos da seção Linux.
 
 ## Configuração da IA
 
-Copie o modelo de configuração:
+Copie o arquivo de exemplo:
 
+Linux / macOS / Termux:
 ```bash
 cp .env.example .env
+```
+
+Windows PowerShell:
+```powershell
+Copy-Item .env.example .env
 ```
 
 Exemplo NVIDIA NIM:
@@ -101,97 +114,80 @@ NEXCODE_API_KEY=sua_chave_nvidia
 NEXCODE_MODEL=meta/llama-3.3-70b-instruct
 ```
 
-Outros provedores:
+Outros provedores: `openai`, `anthropic`, `google`, `ollama` e `openai-compatible`. Consulte `.env.example` para as variáveis de cada provedor.
 
-- OpenAI: `NEXCODE_PROVIDER=openai`, `OPENAI_API_KEY` e nome do modelo em `NEXCODE_MODEL`.
-- Anthropic: `NEXCODE_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` e modelo em `NEXCODE_MODEL`.
-- Gemini: `NEXCODE_PROVIDER=google`, `GOOGLE_API_KEY` e modelo em `NEXCODE_MODEL`.
-- Ollama: `NEXCODE_PROVIDER=ollama`, `NEXCODE_BASE_URL=http://localhost:11434/v1` e modelo local em `NEXCODE_MODEL`.
-- Outro endpoint compatível: `NEXCODE_PROVIDER=openai-compatible`, `NEXCODE_API_KEY`, `NEXCODE_BASE_URL` e `NEXCODE_MODEL`.
+Não compartilhe nem envie seu `.env` ao GitHub. O NEXCODE não precisa de uma chave para instalar, mas precisa de uma chave válida ou servidor Ollama para responder com IA.
 
-Não compartilhe nem envie seu `.env` ao GitHub. O NEXCODE não precisa de uma chave de API para instalar, mas precisa de uma chave válida ou servidor Ollama para responder com IA.
+## Ajustes de desempenho
+
+Os padrões são conservadores para funcionar melhor em celulares e computadores modestos. Personalize no arquivo `.env`:
+
+| Variável | Padrão | Limite | Função |
+|---|---:|---:|---|
+| `NEXCODE_HISTORY_MESSAGES` | 12 | 2–40 | Mensagens anteriores enviadas ao modelo |
+| `NEXCODE_MAX_STEPS` | 4 | 1–12 | Etapas máximas de uso de ferramentas por resposta |
+| `NEXCODE_MAX_OUTPUT_TOKENS` | 2048 | 256–8192 | Limite de tokens gerados por resposta |
+
+Para dispositivos com pouca memória, mantenha os padrões. Em desktops, aumente os limites conforme a capacidade do modelo e da máquina.
+
+## Modos
+
+| Tecla | Modo | Permissões |
+|---|---|---|
+| F1 | `development` | Leitura, pesquisa, escrita e comandos; escrita/comando sempre pedem aprovação |
+| F2 | `planning` | Apenas leitura e pesquisa; sem comandos, MCP ou escrita |
+| F3 | `ask` | Conversa sem ferramentas do workspace |
+
+Pressione **Y** para aprovar ou **N** para negar uma ação pendente.
 
 ## Servidores MCP (opcional)
-
-O NEXCODE aceita servidores MCP locais por stdio. Crie sua configuração privada:
 
 ```bash
 mkdir -p .nexcode
 cp .nexcode/mcp.example.json .nexcode/mcp.json
 ```
 
-Edite `.nexcode/mcp.json` e substitua o servidor de exemplo pelo pacote MCP que deseja usar. Exemplo de formato:
+No PowerShell:
 
-```json
-{
-  "servers": [
-    {
-      "name": "filesystem",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
-      "env": {}
-    }
-  ]
-}
+```powershell
+New-Item -ItemType Directory -Force .nexcode
+Copy-Item .nexcode/mcp.example.json .nexcode/mcp.json
 ```
 
-Na primeira utilização, o NEXCODE pede aprovação antes de iniciar cada servidor. Cada chamada de ferramenta MCP também pede aprovação individual. O servidor roda com variáveis de ambiente básicas e somente as variáveis extras declaradas explicitamente na configuração.
+Edite `.nexcode/mcp.json` e configure servidores confiáveis. Cada inicialização e chamada de ferramenta exige aprovação.
 
-## Executar
-
-Na raiz do repositório:
+## Executar e validar
 
 ```bash
 pnpm dev:cli
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-Para build de produção:
+Build de produção:
 
 ```bash
 pnpm build
 pnpm start:cli
 ```
 
-Atalhos:
+## Segurança
 
-- `F1`: Development
-- `F2`: Planning
-- `F3`: Ask
-- `Enter`: enviar mensagem
-- `Backspace`: apagar caractere
-- `Y` / `N`: aprovar / negar uma ação pendente
-- `Ctrl+C`: sair
-
-## Validação
-
-```bash
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-O GitHub Actions repete instalação congelada, descoberta do workspace, typecheck, testes e build em cada push para `main` e pull request.
-
-## Segurança e limites
-
-- O modelo não recebe acesso direto ao shell: ele solicita uma ferramenta e a aplicação mostra a aprovação antes da execução.
-- Os comandos são iniciados sem shell e com argumentos separados. Revise o comando antes de aprovar; um programa aprovado ainda pode realizar ações relevantes no sistema.
-- Escritas ficam limitadas ao workspace e são bloqueadas em arquivos de ambiente secretos, `.git`, `node_modules` e caminhos simbólicos.
-- MCP é poderoso: instale apenas servidores confiáveis e revise os argumentos de cada chamada.
-- O log de aprovação fica em `.nexcode/audit.jsonl`, localmente, e não é enviado ao Git.
-- A aprovação não substitui backup. Faça commit ou backup antes de tarefas que alterem muitos arquivos.
-- A qualidade das chamadas de ferramentas depende de o modelo escolhido suportar tool calling.
+- O modelo não recebe acesso direto ao shell: solicita ferramentas e a aplicação pede aprovação.
+- Comandos são iniciados sem shell, com argumentos separados, diretório limitado ao workspace, tempo limite e saída limitada.
+- Escritas são bloqueadas em arquivos secretos, `.git`, `node_modules` e caminhos simbólicos.
+- MCP é poderoso: use apenas servidores confiáveis e revise cada aprovação.
+- O registro local fica em `.nexcode/audit.jsonl`; não é enviado ao Git.
 
 ## Estrutura
 
 ```text
-apps/
-  cli/             # TUI OpenTUI
-packages/
-  core/            # Modos e prompts
-  providers/       # Modelos, ferramentas e aprovações
-  mcp/             # Cliente MCP stdio
-tests/             # Testes de segurança do workspace
+apps/cli/          # TUI OpenTUI
+packages/core/     # Modos e prompts
+packages/providers/# Modelos, ferramentas e aprovações
+packages/mcp/      # Cliente MCP stdio
+tests/             # Testes de segurança
 ```
 
 ## Licença
