@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, stepCountIs } from "ai";
-import { createConfiguredMcpTools, createWorkspaceTools, type ApprovalHandler } from "./tools.js";
+import { createAuditedApprovalHandler, createConfiguredMcpTools, createWorkspaceTools, type ApprovalHandler } from "./tools.js";
 import { systemPromptFor, type WorkMode } from "@nexcode/core";
 
 export type ProviderName =
@@ -105,15 +105,18 @@ export async function generateResponse(
       break;
   }
 
+  const auditedApproval = options.workspaceRoot && options.requestApproval
+    ? createAuditedApprovalHandler(options.workspaceRoot, options.requestApproval)
+    : undefined;
   const workspaceTools = options.workspaceRoot && mode !== "ask"
     ? createWorkspaceTools({
         rootDir: options.workspaceRoot,
-        ...(options.requestApproval ? { requestApproval: options.requestApproval } : {}),
+        ...(auditedApproval ? { requestApproval: auditedApproval } : {}),
         allowMutations: mode === "development",
       })
     : undefined;
-  const mcpTools = options.workspaceRoot && mode === "development" && options.requestApproval
-    ? await createConfiguredMcpTools(options.workspaceRoot, options.requestApproval)
+  const mcpTools = options.workspaceRoot && mode === "development" && auditedApproval
+    ? await createConfiguredMcpTools(options.workspaceRoot, auditedApproval)
     : undefined;
   const allTools = workspaceTools
     ? { ...workspaceTools, ...(mcpTools?.tools ?? {}) }
