@@ -112,7 +112,7 @@ renderer.keyInput.on("keypress", (key) => {
   }
 
   const character = key.sequence ?? "";
-  if (character.length === 1 && character >= " " && character <= "~") {
+  if (character && !/[\\u0000-\\u001F\\u007F]/u.test(character)) {
     draft += character;
     refresh();
   }
