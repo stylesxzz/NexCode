@@ -76,6 +76,18 @@ export interface GenerateOptions {
   messages?: ChatMessage[];
 }
 
+function boundedInteger(
+  value: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
+  if (!value?.trim()) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(maximum, Math.max(minimum, parsed));
+}
+
 export async function generateResponse(
   prompt: string,
   mode: WorkMode,
@@ -124,7 +136,17 @@ export async function generateResponse(
     : undefined;
 
   try {
-    const history = options.messages?.slice(-20) ?? [];
+    // Conservative defaults keep memory and tool-call usage predictable on phones.
+    // Desktop users can raise these limits through environment variables.
+    const historyLimit = boundedInteger(process.env.NEXCODE_HISTORY_MESSAGES, 12, 2, 40);
+    const maxSteps = boundedInteger(process.env.NEXCODE_MAX_STEPS, 4, 1, 12);
+    const maxOutputTokens = boundedInteger(
+      process.env.NEXCODE_MAX_OUTPUT_TOKENS,
+      2048,
+      256,
+      8192,
+    );
+    const history = options.messages?.slice(-historyLimit) ?? [];
     const result = await generateText({
       model,
       system: systemPromptFor(mode),
@@ -132,7 +154,8 @@ export async function generateResponse(
         ? { messages: [...history, { role: "user" as const, content: prompt }] }
         : { prompt }),
       temperature: 0.2,
-      ...(allTools ? { tools: allTools, stopWhen: stepCountIs(8) } : {}),
+      maxOutputTokens,
+      ...(allTools ? { tools: allTools, stopWhen: stepCountIs(maxSteps) } : {}),
     });
     return result.text;
   } finally {
