@@ -7,7 +7,7 @@ import {
   TextRenderable,
   createCliRenderer,
 } from "@opentui/core";
-import { isWorkMode, type WorkMode } from "@nexcode/core";
+import { isWorkMode, type ChatMessage, type WorkMode } from "@nexcode/core";
 import { generateResponse } from "@nexcode/providers";
 
 const localEnv = resolve(process.cwd(), ".env");
@@ -21,6 +21,7 @@ let draft = "";
 let busy = false;
 let pendingApproval: { summary: string; details: string } | null = null;
 let approvalResolver: ((approved: boolean) => void) | null = null;
+const conversation: ChatMessage[] = [];
 
 const shell = new BoxRenderable(renderer, {
   width: "100%",
@@ -77,6 +78,7 @@ async function submit() {
   try {
     const answer = await generateResponse(prompt, mode, {
       workspaceRoot: process.cwd(),
+      messages: conversation,
       requestApproval: (request) => new Promise<boolean>((resolveApproval) => {
         pendingApproval = request;
         approvalResolver = resolveApproval;
@@ -84,10 +86,18 @@ async function submit() {
         refresh();
       }),
     });
-    transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  ${answer}`;
+    conversation.push({ role: "user", content: prompt }, { role: "assistant", content: answer });
+    if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+    transcript.content = conversation.slice(-10).map((message) =>
+      `${message.role === "user" ? "YOU" : "NEXCODE"}  ·  ${message.content}`
+    ).join("\n\n");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  ${message}`;
+    conversation.push({ role: "user", content: prompt }, { role: "assistant", content: message });
+    if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+    transcript.content = conversation.slice(-10).map((item) =>
+      `${item.role === "user" ? "YOU" : "NEXCODE"}  ·  ${item.content}`
+    ).join("\n\n");
   } finally {
     busy = false;
     refresh();
