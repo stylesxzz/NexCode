@@ -98,9 +98,9 @@ pnpm start:cli
 
 Na interface:
 
-- `1`: development
-- `2`: planning
-- `3`: ask
+- `F1`: development
+- `F2`: planning
+- `F3`: ask
 - `Enter`: enviar mensagem
 - `Backspace`: apagar caractere
 - `Ctrl+C`: sair
