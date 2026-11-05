@@ -19,6 +19,8 @@ const renderer = await createCliRenderer({ exitOnCtrlC: true });
 let mode: WorkMode = "development";
 let draft = "";
 let busy = false;
+let pendingApproval: { summary: string; details: string } | null = null;
+let approvalResolver: ((approved: boolean) => void) | null = null;
 
 const shell = new BoxRenderable(renderer, {
   width: "100%",
@@ -38,7 +40,7 @@ const modeLine = new TextRenderable(renderer, {
   fg: "#B8C8BE",
 });
 const transcript = new TextRenderable(renderer, {
-  content: "Ready. Configure NEXCODE_API_KEY in .env to connect your model provider.",
+  content: "Ready. Development can inspect files; writes and commands pause for your approval. Planning is read-only; Ask has no tools.",
   fg: "#E6EEE9",
 });
 const inputLine = new TextRenderable(renderer, {
@@ -46,7 +48,7 @@ const inputLine = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const footer = new TextRenderable(renderer, {
-  content: "Enter send  •  F1/F2/F3 switch mode  •  Backspace edit  •  Ctrl+C quit",
+  content: "Enter send  •  F1/F2/F3 modes  •  Y approve  •  N deny  •  Ctrl+C quit",
   fg: "#73847A",
 });
 
@@ -73,7 +75,15 @@ async function submit() {
   transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  Contacting configured provider…`;
 
   try {
-    const answer = await generateResponse(prompt, mode);
+    const answer = await generateResponse(prompt, mode, {
+      workspaceRoot: process.cwd(),
+      requestApproval: (request) => new Promise<boolean>((resolveApproval) => {
+        pendingApproval = request;
+        approvalResolver = resolveApproval;
+        transcript.content = `APPROVAL REQUIRED\n\n${request.summary}\n\n${request.details}\n\nPress Y to approve or N to deny.`;
+        refresh();
+      }),
+    });
     transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  ${answer}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -85,6 +95,25 @@ async function submit() {
 }
 
 renderer.keyInput.on("keypress", (key) => {
+  if (pendingApproval && approvalResolver) {
+    const choice = key.name?.toLowerCase() ?? key.sequence?.toLowerCase();
+    if (choice === "y") {
+      const resolveApproval = approvalResolver;
+      pendingApproval = null;
+      approvalResolver = null;
+      transcript.content += "\\n\\nAPPROVED by user.";
+      resolveApproval(true);
+      refresh();
+    } else if (choice === "n" || key.name === "escape") {
+      const resolveApproval = approvalResolver;
+      pendingApproval = null;
+      approvalResolver = null;
+      transcript.content += "\\n\\nDENIED by user.";
+      resolveApproval(false);
+      refresh();
+    }
+    return;
+  }
   if (busy) return;
 
   if (key.name === "f1" || key.name === "f2" || key.name === "f3") {
