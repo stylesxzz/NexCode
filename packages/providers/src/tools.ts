@@ -44,8 +44,9 @@ async function assertNoSecretPath(root: string, target: string): Promise<void> {
   if (rel.some((part) => part === ".git" || part === "node_modules")) {
     throw new Error("Access to .git and node_modules is blocked.");
   }
-  const name = rel.at(-1) ?? "";
-  if (/^\.env(?:\.|$)/i.test(name) && name !== ".env.example") {
+  const hasSecretEnvSegment = rel.some((part) => /^\.env(?:\.|$)/i.test(part));
+  const isEnvExample = rel.at(-1) === ".env.example";
+  if (hasSecretEnvSegment && !isEnvExample) {
     throw new Error("Secret environment files are blocked. Read .env.example instead.");
   }
 }
