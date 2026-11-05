@@ -1,118 +1,139 @@
 # NEXCODE
 
-Assistente de programação com IA, de código aberto e independente de provedor, planejado para oferecer uma interface de terminal OpenTUI e um aplicativo desktop com Electron.
+Assistente de programação com IA, de código aberto e independente de provedor. O monorepo agora contém uma CLI OpenTUI, um núcleo compartilhado, integração com APIs compatíveis com OpenAI e um cliente MCP por stdio.
 
-## Recursos planejados
+## O que já está implementado
 
-- Modos de trabalho: `development`, `planning` e `ask`.
-- Aprovação explícita antes de executar comandos, alterar arquivos, gravar memória ou chamar ferramentas MCP.
-- Integração com NVIDIA NIM, OpenAI, Anthropic, Google Gemini, Ollama e APIs compatíveis com OpenAI.
-- Integração com servidores MCP (stdio e Streamable HTTP).
-- Skills locais e memória persistente.
-- Interface escura com detalhes verdes.
+- Interface de terminal com OpenTUI Core e identidade escura com detalhes verdes.
+- Modos `development`, `planning` e `ask`, alternáveis pelas teclas `1`, `2` e `3`.
+- Conector de modelos via Vercel AI SDK + OpenAI-compatible provider.
+- Endpoint padrão NVIDIA NIM; aceita endpoints OpenAI-compatible, incluindo Ollama.
+- Base de cliente MCP usando o SDK oficial e transporte stdio.
+- Workspace PNPM com Turbo, TypeScript e testes Vitest.
+- A CLI ainda não executa comandos nem altera arquivos; os modos mantêm instruções de segurança no prompt.
 
 ## Requisitos
 
 - Git
-- Node.js **22.12 ou superior**
-- pnpm **10.20.0** (versão definida em `package.json`)
+- Node.js **22.12+** para ferramentas de workspace, TypeScript e PNPM
+- pnpm **10.20.0**
+- Bun **1.3.14+** para executar a interface OpenTUI. O OpenTUI atual usa FFI nativo no runtime Bun; Node.js requer versão 26.4+ e `--experimental-ffi`.
 
 Confira as versões:
 
 ```bash
 node --version
-npm --version
+pnpm --version
+bun --version
 git --version
 ```
 
-## Instalação do ambiente
+## Instalação
 
 ### Linux (Ubuntu, Debian, Fedora e derivados)
 
-Instale Git e Node.js 22.12+ usando o gerenciador de pacotes ou o instalador oficial do Node.js. Depois, habilite o Corepack e ative a versão do pnpm usada pelo projeto:
+Instale Git e Node.js 22.12+. Habilite PNPM pelo Corepack:
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.20.0 --activate
-pnpm --version
 ```
 
-Se sua instalação do Node.js não incluir Corepack, use:
+Instale Bun:
 
 ```bash
-npm install --global pnpm@10.20.0
+curl -fsSL https://bun.sh/install | bash
 ```
+
+Abra um novo terminal e confira as versões.
 
 ### Windows (PowerShell)
 
-Instale Node.js 22.12+ e Git. Abra um novo PowerShell e execute:
+Instale Node.js 22.12+ e Git. Em seguida:
 
 ```powershell
 corepack enable
 corepack prepare pnpm@10.20.0 --activate
-pnpm --version
-```
-
-Se o Corepack não estiver disponível:
-
-```powershell
-npm install --global pnpm@10.20.0
+powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
 ### Termux (Android)
 
-```bash
-pkg update && pkg upgrade -y
-pkg install -y git nodejs-lts
-node --version
-npm install --global pnpm@10.20.0
-pnpm --version
-```
+O OpenTUI depende de binários nativos e a compatibilidade do Bun/OpenTUI no Termux/Android não está garantida. Use Linux x86_64/ARM64, macOS ou Windows suportados para executar a TUI. O workspace TypeScript pode ser inspecionado no Termux, mas a interface nativa não está validada nesse ambiente.
 
-> O Termux precisa fornecer Node.js 22.12 ou superior. Se a versão instalada for mais antiga, atualize o Node.js antes de continuar.
-
-## Baixar o repositório
+## Baixar e instalar o projeto
 
 ```bash
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
-```
-
-## Instalar as dependências
-
-```bash
 pnpm install
 ```
 
-## Estado atual do projeto
+## Configurar o provedor de IA
 
-**Atenção:** este repositório ainda contém somente o scaffold, os metadados do workspace e a documentação. Os diretórios com o código executável dos pacotes e aplicativos (`apps/*` e `packages/*`) ainda não foram publicados. Portanto, os comandos acima preparam o ambiente e instalam as dependências declaradas na raiz, mas **não instalam nem iniciam o NEXCODE** neste momento.
-
-Os comandos de desenvolvimento previstos, depois que o código dos aplicativos for publicado, são:
+Copie o exemplo e preencha sua chave:
 
 ```bash
-# Verificação de tipos
-pnpm typecheck
-
-# Testes
-pnpm test
-
-# Build
-pnpm build
-
-# Interface de terminal
-pnpm dev:cli
-
-# Aplicativo desktop
-pnpm dev:desktop
+cp .env.example .env
 ```
 
-Esses comandos ainda não devem ser considerados funcionais até a publicação dos pacotes e a validação do CI.
+Configuração padrão NVIDIA NIM:
 
-## Configuração de provedores
+```env
+NEXCODE_PROVIDER=nvidia
+NEXCODE_BASE_URL=https://integrate.api.nvidia.com/v1
+NEXCODE_API_KEY=sua_chave
+NEXCODE_MODEL=meta/llama-3.3-70b-instruct
+```
 
-Quando o módulo de configuração estiver disponível, as chaves dos provedores serão configuradas localmente por variáveis de ambiente. Nunca envie arquivos `.env`, tokens ou chaves de API para o GitHub.
+Para outro serviço OpenAI-compatible, altere `NEXCODE_BASE_URL`, `NEXCODE_API_KEY` e `NEXCODE_MODEL`. Não envie o arquivo `.env` ao GitHub.
+
+## Executar
+
+```bash
+pnpm dev:cli
+pnpm build
+pnpm start:cli
+```
+
+Na interface:
+
+- `1`: development
+- `2`: planning
+- `3`: ask
+- `Enter`: enviar mensagem
+- `Backspace`: apagar caractere
+- `Ctrl+C`: sair
+
+## Validar o workspace
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+O GitHub Actions executa essas verificações em pushes para `main` e pull requests.
+
+## Estrutura
+
+```text
+apps/
+  cli/             # Interface OpenTUI
+packages/
+  core/            # Tipos, modos e prompts centrais
+  providers/       # Integração AI SDK / OpenAI-compatible
+  mcp/             # Cliente MCP stdio
+```
+
+## Próximas etapas
+
+- Fluxo de aprovação explícita para comandos, escrita de arquivos e ferramentas MCP.
+- Descoberta e gerenciamento de ferramentas MCP (stdio e Streamable HTTP).
+- Histórico de conversa, contexto de repositório e memória local.
+- Skills locais e ferramentas de leitura/diff de arquivos.
+- Aplicativo desktop Electron.
 
 ## Licença
 
-Distribuído sob a licença MIT. Consulte [LICENSE](LICENSE).
+MIT. Consulte [LICENSE](LICENSE).
