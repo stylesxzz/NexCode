@@ -321,7 +321,7 @@ export async function createConfiguredMcpTools(
       const connection = await connectStdioServer({
         command: server.command,
         args: server.args ?? [],
-        env: server.env,
+        ...(server.env ? { env: server.env } : {}),
       });
       connections.push(connection);
       const listed = await connection.client.listTools();
