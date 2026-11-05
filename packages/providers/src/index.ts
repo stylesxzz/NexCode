@@ -4,7 +4,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, stepCountIs } from "ai";
 import { createAuditedApprovalHandler, createConfiguredMcpTools, createWorkspaceTools, type ApprovalHandler } from "./tools.js";
-import { systemPromptFor, type WorkMode } from "@nexcode/core";
+import { systemPromptFor, type ChatMessage, type WorkMode } from "@nexcode/core";
 
 export type ProviderName =
   | "nvidia"
@@ -73,6 +73,7 @@ export function providerConfigFromEnv(
 export interface GenerateOptions {
   workspaceRoot?: string;
   requestApproval?: ApprovalHandler;
+  messages?: ChatMessage[];
 }
 
 export async function generateResponse(
@@ -123,10 +124,13 @@ export async function generateResponse(
     : undefined;
 
   try {
+    const history = options.messages?.slice(-20) ?? [];
     const result = await generateText({
       model,
       system: systemPromptFor(mode),
-      prompt,
+      ...(history.length
+        ? { messages: [...history, { role: "user" as const, content: prompt }] }
+        : { prompt }),
       temperature: 0.2,
       ...(allTools ? { tools: allTools, stopWhen: stepCountIs(8) } : {}),
     });
