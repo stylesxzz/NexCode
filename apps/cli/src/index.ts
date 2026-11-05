@@ -7,7 +7,7 @@ import {
   TextRenderable,
   createCliRenderer,
 } from "@opentui/core";
-import { isWorkMode, type WorkMode } from "@nexcode/core";
+import { isWorkMode, type ChatMessage, type WorkMode } from "@nexcode/core";
 import { generateResponse } from "@nexcode/providers";
 
 const localEnv = resolve(process.cwd(), ".env");
@@ -19,6 +19,9 @@ const renderer = await createCliRenderer({ exitOnCtrlC: true });
 let mode: WorkMode = "development";
 let draft = "";
 let busy = false;
+let pendingApproval: { summary: string; details: string } | null = null;
+let approvalResolver: ((approved: boolean) => void) | null = null;
+const conversation: ChatMessage[] = [];
 
 const shell = new BoxRenderable(renderer, {
   width: "100%",
@@ -38,7 +41,7 @@ const modeLine = new TextRenderable(renderer, {
   fg: "#B8C8BE",
 });
 const transcript = new TextRenderable(renderer, {
-  content: "Ready. Configure NEXCODE_API_KEY in .env to connect your model provider.",
+  content: "Ready. Development can inspect files; writes and commands pause for your approval. Planning is read-only; Ask has no tools.",
   fg: "#E6EEE9",
 });
 const inputLine = new TextRenderable(renderer, {
@@ -46,7 +49,7 @@ const inputLine = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const footer = new TextRenderable(renderer, {
-  content: "Enter send  •  F1/F2/F3 switch mode  •  Backspace edit  •  Ctrl+C quit",
+  content: "Enter send  •  F1/F2/F3 modes  •  Y approve  •  N deny  •  Ctrl+C quit",
   fg: "#73847A",
 });
 
@@ -73,11 +76,28 @@ async function submit() {
   transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  Contacting configured provider…`;
 
   try {
-    const answer = await generateResponse(prompt, mode);
-    transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  ${answer}`;
+    const answer = await generateResponse(prompt, mode, {
+      workspaceRoot: process.cwd(),
+      messages: conversation,
+      requestApproval: (request) => new Promise<boolean>((resolveApproval) => {
+        pendingApproval = request;
+        approvalResolver = resolveApproval;
+        transcript.content = `APPROVAL REQUIRED\n\n${request.summary}\n\n${request.details}\n\nPress Y to approve or N to deny.`;
+        refresh();
+      }),
+    });
+    conversation.push({ role: "user", content: prompt }, { role: "assistant", content: answer });
+    if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+    transcript.content = conversation.slice(-10).map((message) =>
+      `${message.role === "user" ? "YOU" : "NEXCODE"}  ·  ${message.content}`
+    ).join("\n\n");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  ${message}`;
+    conversation.push({ role: "user", content: prompt }, { role: "assistant", content: message });
+    if (conversation.length > 20) conversation.splice(0, conversation.length - 20);
+    transcript.content = conversation.slice(-10).map((item) =>
+      `${item.role === "user" ? "YOU" : "NEXCODE"}  ·  ${item.content}`
+    ).join("\n\n");
   } finally {
     busy = false;
     refresh();
@@ -85,6 +105,25 @@ async function submit() {
 }
 
 renderer.keyInput.on("keypress", (key) => {
+  if (pendingApproval && approvalResolver) {
+    const choice = key.name?.toLowerCase() ?? key.sequence?.toLowerCase();
+    if (choice === "y") {
+      const resolveApproval = approvalResolver;
+      pendingApproval = null;
+      approvalResolver = null;
+      transcript.content += "\n\nAPPROVED by user.";
+      resolveApproval(true);
+      refresh();
+    } else if (choice === "n" || key.name === "escape") {
+      const resolveApproval = approvalResolver;
+      pendingApproval = null;
+      approvalResolver = null;
+      transcript.content += "\n\nDENIED by user.";
+      resolveApproval(false);
+      refresh();
+    }
+    return;
+  }
   if (busy) return;
 
   if (key.name === "f1" || key.name === "f2" || key.name === "f3") {
@@ -112,7 +151,7 @@ renderer.keyInput.on("keypress", (key) => {
   }
 
   const character = key.sequence ?? "";
-  if (character && !/[\\u0000-\\u001F\\u007F]/u.test(character)) {
+  if (character && !/[\u0000-\u001F\u007F]/u.test(character)) {
     draft += character;
     refresh();
   }

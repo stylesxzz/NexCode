@@ -15,10 +15,16 @@ export async function connectStdioServer(config: StdioServerConfig) {
     version: "0.3.0",
   });
 
+  const safeEnv: Record<string, string> = {};
+  for (const key of ["PATH", "HOME", "USERPROFILE", "TMP", "TEMP", "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "LANG", "LC_ALL"]) {
+    const value = process.env[key];
+    if (value) safeEnv[key] = value;
+  }
+
   const transport = new StdioClientTransport({
     command: config.command,
     args: config.args ?? [],
-    ...(config.env ? { env: config.env } : {}),
+    env: { ...safeEnv, ...config.env },
   });
 
   await client.connect(transport);

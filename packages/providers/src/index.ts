@@ -2,8 +2,9 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText } from "ai";
-import { systemPromptFor, type WorkMode } from "@nexcode/core";
+import { generateText, stepCountIs } from "ai";
+import { createAuditedApprovalHandler, createConfiguredMcpTools, createWorkspaceTools, type ApprovalHandler } from "./tools.js";
+import { systemPromptFor, type ChatMessage, type WorkMode } from "@nexcode/core";
 
 export type ProviderName =
   | "nvidia"
@@ -69,9 +70,16 @@ export function providerConfigFromEnv(
   };
 }
 
+export interface GenerateOptions {
+  workspaceRoot?: string;
+  requestApproval?: ApprovalHandler;
+  messages?: ChatMessage[];
+}
+
 export async function generateResponse(
   prompt: string,
   mode: WorkMode,
+  options: GenerateOptions = {},
   config = providerConfigFromEnv(),
 ): Promise<string> {
   if (!prompt.trim()) throw new Error("Prompt cannot be empty.");
@@ -98,12 +106,36 @@ export async function generateResponse(
       break;
   }
 
-  const result = await generateText({
-    model,
-    system: systemPromptFor(mode),
-    prompt,
-    temperature: 0.2,
-  });
+  const auditedApproval = options.workspaceRoot && options.requestApproval
+    ? createAuditedApprovalHandler(options.workspaceRoot, options.requestApproval)
+    : undefined;
+  const workspaceTools = options.workspaceRoot && mode !== "ask"
+    ? createWorkspaceTools({
+        rootDir: options.workspaceRoot,
+        ...(auditedApproval ? { requestApproval: auditedApproval } : {}),
+        allowMutations: mode === "development",
+      })
+    : undefined;
+  const mcpTools = options.workspaceRoot && mode === "development" && auditedApproval
+    ? await createConfiguredMcpTools(options.workspaceRoot, auditedApproval)
+    : undefined;
+  const allTools = workspaceTools
+    ? { ...workspaceTools, ...(mcpTools?.tools ?? {}) }
+    : undefined;
 
-  return result.text;
+  try {
+    const history = options.messages?.slice(-20) ?? [];
+    const result = await generateText({
+      model,
+      system: systemPromptFor(mode),
+      ...(history.length
+        ? { messages: [...history, { role: "user" as const, content: prompt }] }
+        : { prompt }),
+      temperature: 0.2,
+      ...(allTools ? { tools: allTools, stopWhen: stepCountIs(8) } : {}),
+    });
+    return result.text;
+  } finally {
+    await mcpTools?.close();
+  }
 }

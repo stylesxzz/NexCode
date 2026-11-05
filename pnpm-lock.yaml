@@ -79,9 +79,15 @@ importers:
       '@nexcode/core':
         specifier: workspace:*
         version: link:../core
+      '@nexcode/mcp':
+        specifier: workspace:*
+        version: link:../mcp
       ai:
         specifier: ^6.0.322
         version: 6.0.323(zod@4.6.7)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^22.19.0
