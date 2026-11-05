@@ -1,0 +1,13 @@
+node_modules/
+dist/
+out/
+release/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.nexcode/*
+!.nexcode/mcp.example.json
+!.nexcode/skills/
+!.nexcode/skills/**/
