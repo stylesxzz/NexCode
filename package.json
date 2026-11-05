@@ -1,12 +1,24 @@
 {
   "name": "nexcode",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Open-source, model-agnostic AI coding agent with an OpenTUI terminal and Electron desktop app.",
+  "description": "Open-source, model-agnostic AI coding agent with an OpenTUI terminal.",
   "license": "MIT",
   "packageManager": "pnpm@10.20.0",
   "engines": { "node": ">=22.12.0" },
-  "scripts": { "build": "turbo run build", "dev:cli": "pnpm --filter @nexcode/cli dev", "start:cli": "pnpm --filter @nexcode/cli start", "dev:desktop": "pnpm --filter @nexcode/desktop dev", "test": "vitest run --passWithNoTests", "typecheck": "turbo run typecheck" },
-  "devDependencies": { "@types/node": "^22.19.0", "turbo": "^2.6.1", "typescript": "^5.9.3", "vitest": "^4.0.8" },
-  "dependencies": { "dotenv": "^16.4.7" }
+  "scripts": {
+    "build": "turbo run build",
+    "dev:cli": "pnpm --filter @nexcode/cli dev",
+    "start:cli": "pnpm --filter @nexcode/cli start",
+    "test": "vitest run",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "turbo": "^2.6.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.8"
+  }
 }
