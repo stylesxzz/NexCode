@@ -12,16 +12,29 @@ export interface ProviderConfig {
 export function providerConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): ProviderConfig {
-  const apiKey = env.NEXCODE_API_KEY?.trim();
+  const providerName = env.NEXCODE_PROVIDER?.trim().toLowerCase() || "nvidia";
+  const providerKeys: Record<string, string | undefined> = {
+    nvidia: env.NVIDIA_API_KEY,
+    openai: env.OPENAI_API_KEY,
+    anthropic: env.ANTHROPIC_API_KEY,
+    google: env.GOOGLE_API_KEY,
+    ollama: "ollama",
+  };
+  const apiKey =
+    env.NEXCODE_API_KEY?.trim() || providerKeys[providerName]?.trim();
+
   if (!apiKey) {
-    throw new Error("NEXCODE_API_KEY is missing. Copy .env.example to .env and configure your provider.");
+    throw new Error(
+      `API key is missing for provider "${providerName}". Set NEXCODE_API_KEY or the provider-specific key in .env.`,
+    );
   }
 
   return {
     apiKey,
-    baseURL: env.NEXCODE_BASE_URL?.trim() || "https://integrate.api.nvidia.com/v1",
+    baseURL:
+      env.NEXCODE_BASE_URL?.trim() || "https://integrate.api.nvidia.com/v1",
     model: env.NEXCODE_MODEL?.trim() || "meta/llama-3.3-70b-instruct",
-    providerName: env.NEXCODE_PROVIDER?.trim() || "custom-openai-compatible",
+    providerName,
   };
 }
 
