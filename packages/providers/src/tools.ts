@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { tool } from "ai";
 import { z } from "zod";
@@ -74,9 +74,21 @@ async function listTree(root: string, base: string, depth: number, output: strin
 }
 
 export function createWorkspaceTools(options: WorkspaceToolsOptions) {
-  const requestApproval: ApprovalHandler = options.requestApproval ??
-    (async () => false);
   const rootPromise = workspaceRoot(options.rootDir);
+  const requestApproval: ApprovalHandler = async (request) => {
+    const approved = options.requestApproval
+      ? await options.requestApproval(request)
+      : false;
+    const root = await rootPromise;
+    const auditDir = resolve(root, ".nexcode");
+    await mkdir(auditDir, { recursive: true });
+    await appendFile(
+      resolve(auditDir, "audit.jsonl"),
+      JSON.stringify({ timestamp: new Date().toISOString(), ...request, approved }) + "\\n",
+      "utf8",
+    );
+    return approved;
+  };
 
   const readTools = {
     list_files: tool({
@@ -161,10 +173,27 @@ export function createWorkspaceTools(options: WorkspaceToolsOptions) {
         const root = await rootPromise;
         const target = resolveWorkspacePath(root, path);
         await assertNoSecretPath(root, target);
-        const parent = await realpath(resolve(target, ".."));
-        const relParent = relative(root, parent);
-        if (relParent === ".." || relParent.startsWith(`..${sep}`) || isAbsolute(relParent)) {
-          throw new Error("Parent directory escapes the workspace.");
+        const parentPath = resolve(target, "..");
+        let existingAncestor = parentPath;
+        while (true) {
+          try {
+            const resolvedAncestor = await realpath(existingAncestor);
+            const relAncestor = relative(root, resolvedAncestor);
+            if (relAncestor === ".." || relAncestor.startsWith(`..${sep}`) || isAbsolute(relAncestor)) {
+              throw new Error("Parent directory escapes the workspace.");
+            }
+            break;
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+            const next = resolve(existingAncestor, "..");
+            if (next === existingAncestor) throw error;
+            existingAncestor = next;
+          }
+        }
+        try {
+          await verifyExistingPath(root, target);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
         }
         const existing = await readFile(target, "utf8").catch(() => "");
         const approved = await requestApproval({
@@ -173,6 +202,8 @@ export function createWorkspaceTools(options: WorkspaceToolsOptions) {
           details: `Bytes: ${Buffer.byteLength(content, "utf8")}\nExisting file: ${existing ? "yes (will be replaced)" : "no (will be created)"}\nPreview:\n${content.split("\n").slice(0, 24).join("\n").slice(0, 2400)}`,
         });
         if (!approved) return { approved: false, message: "User denied the file write." };
+        await mkdir(parentPath, { recursive: true });
+        await verifyExistingPath(root, parentPath);
         await writeFile(target, content, "utf8");
         return { approved: true, path, bytesWritten: Buffer.byteLength(content, "utf8") };
       },
