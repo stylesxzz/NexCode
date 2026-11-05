@@ -34,7 +34,7 @@ const header = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const modeLine = new TextRenderable(renderer, {
-  content: "MODE  [1] development   [2] planning   [3] ask",
+  content: "MODE  [F1] development   [F2] planning   [F3] ask",
   fg: "#B8C8BE",
 });
 const transcript = new TextRenderable(renderer, {
@@ -46,7 +46,7 @@ const inputLine = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const footer = new TextRenderable(renderer, {
-  content: "Enter send  •  1/2/3 switch mode  •  Backspace edit  •  Ctrl+C quit",
+  content: "Enter send  •  F1/F2/F3 switch mode  •  Backspace edit  •  Ctrl+C quit",
   fg: "#73847A",
 });
 
@@ -59,7 +59,7 @@ shell.add(footer);
 renderer.root.add(shell);
 
 function refresh() {
-  modeLine.content = `MODE  [1] development   [2] planning   [3] ask     CURRENT: ${mode.toUpperCase()}`;
+  modeLine.content = `MODE  [F1] development   [F2] planning   [F3] ask     CURRENT: ${mode.toUpperCase()}`;
   inputLine.content = `> ${draft}${busy ? "  [working…]" : ""}`;
 }
 
@@ -87,8 +87,8 @@ async function submit() {
 renderer.keyInput.on("keypress", (key) => {
   if (busy) return;
 
-  if (key.name === "1" || key.name === "2" || key.name === "3") {
-    const selected = key.name === "1" ? "development" : key.name === "2" ? "planning" : "ask";
+  if (key.name === "f1" || key.name === "f2" || key.name === "f3") {
+    const selected = key.name === "f1" ? "development" : key.name === "f2" ? "planning" : "ask";
     if (isWorkMode(selected)) mode = selected;
     refresh();
     return;
