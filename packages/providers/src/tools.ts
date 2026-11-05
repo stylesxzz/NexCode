@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { appendFile, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { appendFile, lstat, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { jsonSchema, tool } from "ai";
 import { connectStdioServer } from "@nexcode/mcp";
@@ -192,6 +192,8 @@ export function createWorkspaceTools(options: WorkspaceToolsOptions) {
           }
         }
         try {
+          const targetInfo = await lstat(target);
+          if (targetInfo.isSymbolicLink()) throw new Error("Writing through symbolic links is blocked.");
           await verifyExistingPath(root, target);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
