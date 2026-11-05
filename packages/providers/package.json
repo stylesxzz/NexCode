@@ -23,7 +23,8 @@
     "@ai-sdk/openai-compatible": "^2.0.88",
     "@nexcode/core": "workspace:*",
     "ai": "^6.0.322",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@nexcode/mcp": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",
