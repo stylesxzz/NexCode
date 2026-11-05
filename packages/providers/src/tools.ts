@@ -87,7 +87,7 @@ export function createAuditedApprovalHandler(
     await mkdir(auditDir, { recursive: true });
     await appendFile(
       resolve(auditDir, "audit.jsonl"),
-      JSON.stringify({ timestamp: new Date().toISOString(), ...request, approved }) + "\\n",
+      JSON.stringify({ timestamp: new Date().toISOString(), ...request, approved }) + "\n",
       "utf8",
     );
     return approved;
@@ -95,6 +95,7 @@ export function createAuditedApprovalHandler(
 }
 
 export function createWorkspaceTools(options: WorkspaceToolsOptions) {
+  const rootPromise = workspaceRoot(options.rootDir);
   const requestApproval: ApprovalHandler = options.requestApproval ?? (async () => false);
 
   const readTools = {
