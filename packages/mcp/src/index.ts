@@ -18,7 +18,7 @@ export async function connectStdioServer(config: StdioServerConfig) {
   const transport = new StdioClientTransport({
     command: config.command,
     args: config.args ?? [],
-    env: config.env,
+    ...(config.env ? { env: config.env } : {}),
   });
 
   await client.connect(transport);
