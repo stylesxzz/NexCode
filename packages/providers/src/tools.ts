@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
 import { appendFile, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { tool } from "ai";
+import { jsonSchema, tool } from "ai";
+import { connectStdioServer } from "@nexcode/mcp";
 import { z } from "zod";
 
 export interface ApprovalRequest {
-  action: "write_file" | "run_command";
+  action: "write_file" | "run_command" | "mcp_connect" | "mcp_tool";
   summary: string;
   details: string;
 }
@@ -270,4 +271,90 @@ export function createWorkspaceTools(options: WorkspaceToolsOptions) {
       },
     }),
   };
+}
+
+export interface McpToolsResult {
+  tools: Record<string, ReturnType<typeof tool>>;
+  close: () => Promise<void>;
+}
+
+export async function createConfiguredMcpTools(
+  rootDir: string,
+  requestApproval: ApprovalHandler,
+): Promise<McpToolsResult> {
+  const configPath = resolve(rootDir, ".nexcode", "mcp.json");
+  let raw: string;
+  try {
+    raw = await readFile(configPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { tools: {}, close: async () => undefined };
+    }
+    throw error;
+  }
+
+  const parsed = JSON.parse(raw) as {
+    servers?: Array<{ name: string; command: string; args?: string[]; env?: Record<string, string> }>;
+  };
+  if (!Array.isArray(parsed.servers)) {
+    throw new Error("Invalid .nexcode/mcp.json: expected a servers array.");
+  }
+  if (parsed.servers.length > 8) {
+    throw new Error("At most 8 MCP servers can be configured.");
+  }
+
+  const tools: Record<string, ReturnType<typeof tool>> = {};
+  const connections: Array<{ client: Awaited<ReturnType<typeof connectStdioServer>>["client"]; close: () => Promise<void> }> = [];
+
+  try {
+    for (const server of parsed.servers) {
+      if (!server.name?.trim() || !server.command?.trim()) {
+        throw new Error("Every MCP server needs a non-empty name and command.");
+      }
+      const connectApproved = await requestApproval({
+        action: "mcp_connect",
+        summary: `Start MCP server: ${server.name}`,
+        details: `Executable: ${server.command}\nArguments: ${(server.args ?? []).join(" ")}\nEnvironment: only safe system variables plus explicitly configured values are passed.\nConfig: .nexcode/mcp.json`,
+      });
+      if (!connectApproved) continue;
+
+      const connection = await connectStdioServer({
+        command: server.command,
+        args: server.args ?? [],
+        env: server.env,
+      });
+      connections.push(connection);
+      const listed = await connection.client.listTools();
+
+      for (const mcpTool of listed.tools) {
+        const toolName = `${server.name}_${mcpTool.name}`.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+        if (tools[toolName]) throw new Error(`Duplicate MCP tool name: ${toolName}`);
+        tools[toolName] = tool({
+          description: `MCP server ${server.name}: ${mcpTool.description ?? mcpTool.name}. This action requires the user's approval before it runs.`,
+          inputSchema: jsonSchema(mcpTool.inputSchema as Parameters<typeof jsonSchema>[0]),
+          execute: async (input) => {
+            const approved = await requestApproval({
+              action: "mcp_tool",
+              summary: `Run MCP tool: ${server.name}/${mcpTool.name}`,
+              details: `Arguments:\n${JSON.stringify(input, null, 2).slice(0, 3000)}`,
+            });
+            if (!approved) return { approved: false, message: "User denied the MCP tool call." };
+            return connection.client.callTool({
+              name: mcpTool.name,
+              arguments: input as Record<string, unknown>,
+            });
+          },
+        });
+      }
+    }
+    return {
+      tools,
+      close: async () => {
+        await Promise.allSettled(connections.map((connection) => connection.close()));
+      },
+    };
+  } catch (error) {
+    await Promise.allSettled(connections.map((connection) => connection.close()));
+    throw error;
+  }
 }
