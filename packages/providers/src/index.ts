@@ -108,7 +108,7 @@ export async function generateResponse(
   const workspaceTools = options.workspaceRoot && mode !== "ask"
     ? createWorkspaceTools({
         rootDir: options.workspaceRoot,
-        requestApproval: options.requestApproval,
+        ...(options.requestApproval ? { requestApproval: options.requestApproval } : {}),
         allowMutations: mode === "development",
       })
     : undefined;
