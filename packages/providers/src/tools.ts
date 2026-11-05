@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { appendFile, lstat, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { tool } from "ai";
+import { jsonSchema, tool } from "ai";
 import { connectStdioServer } from "@nexcode/mcp";
 import { z } from "zod";
 
@@ -338,9 +338,9 @@ export async function createConfiguredMcpTools(
       for (const mcpTool of listed.tools) {
         const toolName = `${server.name}_${mcpTool.name}`.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
         if (tools[toolName]) throw new Error(`Duplicate MCP tool name: ${toolName}`);
-        tools[toolName] = tool({
-          description: `MCP server ${server.name}: ${mcpTool.description ?? mcpTool.name}. Input JSON Schema: ${JSON.stringify(mcpTool.inputSchema)}. This action requires the user's approval before it runs.`,
-          inputSchema: z.record(z.string(), z.unknown()),
+        tools[toolName] = (tool as any)({
+          description: `MCP server ${server.name}: ${mcpTool.description ?? mcpTool.name}. This action requires the user's approval before it runs.`,
+          inputSchema: jsonSchema(mcpTool.inputSchema as any),
           execute: async (input: Record<string, unknown>) => {
             const approved = await requestApproval({
               action: "mcp_tool",
