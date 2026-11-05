@@ -2,7 +2,8 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
+import { createWorkspaceTools, type ApprovalHandler } from "./tools.js";
 import { systemPromptFor, type WorkMode } from "@nexcode/core";
 
 export type ProviderName =
@@ -69,9 +70,15 @@ export function providerConfigFromEnv(
   };
 }
 
+export interface GenerateOptions {
+  workspaceRoot?: string;
+  requestApproval?: ApprovalHandler;
+}
+
 export async function generateResponse(
   prompt: string,
   mode: WorkMode,
+  options: GenerateOptions = {},
   config = providerConfigFromEnv(),
 ): Promise<string> {
   if (!prompt.trim()) throw new Error("Prompt cannot be empty.");
@@ -98,11 +105,20 @@ export async function generateResponse(
       break;
   }
 
+  const workspaceTools = options.workspaceRoot && mode !== "ask"
+    ? createWorkspaceTools({
+        rootDir: options.workspaceRoot,
+        requestApproval: options.requestApproval,
+        allowMutations: mode === "development",
+      })
+    : undefined;
+
   const result = await generateText({
     model,
     system: systemPromptFor(mode),
     prompt,
     temperature: 0.2,
+    ...(workspaceTools ? { tools: workspaceTools, stopWhen: stepCountIs(8) } : {}),
   });
 
   return result.text;
