@@ -12,9 +12,12 @@
     "clean": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', {recursive:true, force:true}))\""
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.138",
+    "@ai-sdk/google": "^3.0.141",
+    "@ai-sdk/openai": "^3.0.137",
     "@ai-sdk/openai-compatible": "^2.0.88",
     "@nexcode/core": "workspace:*",
-    "ai": "^6.0.0"
+    "ai": "^6.0.322"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",
