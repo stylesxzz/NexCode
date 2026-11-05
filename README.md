@@ -6,8 +6,8 @@ Assistente de programação com IA, de código aberto e independente de provedor
 
 - Interface de terminal com OpenTUI Core e identidade escura com detalhes verdes.
 - Modos `development`, `planning` e `ask`, alternáveis pelas teclas `1`, `2` e `3`.
-- Conector de modelos via Vercel AI SDK + OpenAI-compatible provider.
-- Endpoint padrão NVIDIA NIM; aceita endpoints OpenAI-compatible, incluindo Ollama.
+- Adaptadores nativos Vercel AI SDK para NVIDIA NIM/OpenAI-compatible, OpenAI, Anthropic e Google Gemini.
+- Endpoint local Ollama via API OpenAI-compatible.
 - Base de cliente MCP usando o SDK oficial e transporte stdio.
 - Workspace PNPM com Turbo, TypeScript e testes Vitest.
 - A CLI ainda não executa comandos nem altera arquivos; os modos mantêm instruções de segurança no prompt.
@@ -86,7 +86,7 @@ NEXCODE_API_KEY=sua_chave
 NEXCODE_MODEL=meta/llama-3.3-70b-instruct
 ```
 
-Para outro serviço OpenAI-compatible, altere `NEXCODE_BASE_URL`, `NEXCODE_API_KEY` e `NEXCODE_MODEL`. Não envie o arquivo `.env` ao GitHub.
+Para OpenAI, Anthropic ou Gemini, defina `NEXCODE_PROVIDER=openai`, `anthropic` ou `google`, preencha a chave correspondente (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY` ou `GOOGLE_API_KEY`) e ajuste `NEXCODE_MODEL`. Para Ollama, use `NEXCODE_PROVIDER=ollama` e `NEXCODE_BASE_URL=http://localhost:11434/v1`. Para outro endpoint compatível, use `NEXCODE_PROVIDER=openai-compatible`. Não envie o arquivo `.env` ao GitHub.
 
 ## Executar
 
