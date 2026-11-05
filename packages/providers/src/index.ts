@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, stepCountIs } from "ai";
-import { createWorkspaceTools, type ApprovalHandler } from "./tools.js";
+import { createConfiguredMcpTools, createWorkspaceTools, type ApprovalHandler } from "./tools.js";
 import { systemPromptFor, type WorkMode } from "@nexcode/core";
 
 export type ProviderName =
@@ -112,14 +112,23 @@ export async function generateResponse(
         allowMutations: mode === "development",
       })
     : undefined;
+  const mcpTools = options.workspaceRoot && mode === "development" && options.requestApproval
+    ? await createConfiguredMcpTools(options.workspaceRoot, options.requestApproval)
+    : undefined;
+  const allTools = workspaceTools
+    ? { ...workspaceTools, ...(mcpTools?.tools ?? {}) }
+    : undefined;
 
-  const result = await generateText({
-    model,
-    system: systemPromptFor(mode),
-    prompt,
-    temperature: 0.2,
-    ...(workspaceTools ? { tools: workspaceTools, stopWhen: stepCountIs(8) } : {}),
-  });
-
-  return result.text;
+  try {
+    const result = await generateText({
+      model,
+      system: systemPromptFor(mode),
+      prompt,
+      temperature: 0.2,
+      ...(allTools ? { tools: allTools, stopWhen: stepCountIs(8) } : {}),
+    });
+    return result.text;
+  } finally {
+    await mcpTools?.close();
+  }
 }
