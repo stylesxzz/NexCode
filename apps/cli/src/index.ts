@@ -101,14 +101,14 @@ renderer.keyInput.on("keypress", (key) => {
       const resolveApproval = approvalResolver;
       pendingApproval = null;
       approvalResolver = null;
-      transcript.content += "\\n\\nAPPROVED by user.";
+      transcript.content += "\n\nAPPROVED by user.";
       resolveApproval(true);
       refresh();
     } else if (choice === "n" || key.name === "escape") {
       const resolveApproval = approvalResolver;
       pendingApproval = null;
       approvalResolver = null;
-      transcript.content += "\\n\\nDENIED by user.";
+      transcript.content += "\n\nDENIED by user.";
       resolveApproval(false);
       refresh();
     }
@@ -141,7 +141,7 @@ renderer.keyInput.on("keypress", (key) => {
   }
 
   const character = key.sequence ?? "";
-  if (character && !/[\\u0000-\\u001F\\u007F]/u.test(character)) {
+  if (character && !/[\u0000-\u001F\u007F]/u.test(character)) {
     draft += character;
     refresh();
   }
