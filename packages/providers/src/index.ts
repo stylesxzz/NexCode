@@ -59,9 +59,11 @@ export function providerConfigFromEnv(
     ollama: "http://localhost:11434/v1",
   };
 
+  const baseURL = env.NEXCODE_BASE_URL?.trim() || defaultBaseURLs[providerName];
+
   return {
     apiKey,
-    baseURL: env.NEXCODE_BASE_URL?.trim() || defaultBaseURLs[providerName],
+    ...(baseURL ? { baseURL } : {}),
     model: env.NEXCODE_MODEL?.trim() || "meta/llama-3.3-70b-instruct",
     providerName,
   };
