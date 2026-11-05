@@ -1,4 +1,7 @@
-import "dotenv/config";
+#!/usr/bin/env bun
+import dotenv from "dotenv";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   BoxRenderable,
   TextRenderable,
@@ -7,10 +10,11 @@ import {
 import { isWorkMode, type WorkMode } from "@nexcode/core";
 import { generateResponse } from "@nexcode/providers";
 
-const renderer = await createCliRenderer({
-  exitOnCtrlC: true,
-  useAlternateScreen: true,
-});
+const localEnv = resolve(process.cwd(), ".env");
+const rootEnv = resolve(process.cwd(), "../../.env");
+dotenv.config({ path: existsSync(localEnv) ? localEnv : rootEnv });
+
+const renderer = await createCliRenderer({ exitOnCtrlC: true });
 
 let mode: WorkMode = "development";
 let draft = "";
