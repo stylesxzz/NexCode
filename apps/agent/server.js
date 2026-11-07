@@ -153,7 +153,7 @@ async function startGgufRuntime(filename){
  const name=safeModelFilename(filename),file=join(MODEL_DIR,name),info=await stat(file);
  if(!info.isFile())throw Error("O modelo local não é um arquivo.");
  const old=localRuntimes.get(name);
- if(old){try{const health=await fetch(old.baseUrl.replace(/\/v1\/$/,"")+"/health",{signal:AbortSignal.timeout(1500)});if(health.ok)return old}catch{}localRuntimes.delete(name)}
+ if(old){try{const health=await fetch(old.baseUrl.replace(/\/v1\/$/,"")+"/health",{signal:AbortSignal.timeout(1500)});if(health.ok)return old}catch{}old.child.kill("SIGTERM");localRuntimes.delete(name)}
  const port=await freeLocalPort(),baseUrl="http://127.0.0.1:"+port+"/v1",binary=process.env.NEXCODE_LLAMA_SERVER||cfg.llamaServerPath||"llama-server";
  const child=spawn(binary,["-m",file,"--host","127.0.0.1","--port",String(port),"-c","4096"],{cwd:MODEL_DIR,stdio:["ignore","ignore","pipe"]});
  let stderr="",spawnError=null;child.stderr.on("data",d=>{stderr=(stderr+d.toString()).slice(-5000)});child.once("error",e=>{spawnError=e});
@@ -246,7 +246,7 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  if(u.pathname==="/api/local/hf/files"&&req.method==="POST"){
   const b=await body(req),repo=parseHfRepo(b.repo),revision=String(b.revision||"main").trim();if(!/^[A-Za-z0-9._-]+$/.test(revision))throw Error("Revisão Hugging Face inválida.");const data=await hfJson(repo,b.token||"",revision);
   const files=(data.siblings||[]).filter(x=>String(x.rfilename||"").toLowerCase().endsWith(".gguf")).map(x=>({name:x.rfilename,size:x.size??x.lfs?.size??null})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
-  return send(res,200,{repo,files,private:!!data.private});
+  return send(res,200,{repo,files});
  }
  if(u.pathname==="/api/local/hf/download"&&req.method==="POST"){
   const b=await body(req),repo=parseHfRepo(b.repo),revision=String(b.revision||"main").trim(),file=String(b.file||"");
