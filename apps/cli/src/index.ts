@@ -78,7 +78,7 @@ async function submit() {
 
   try {
     if (prompt.startsWith("/book")) {
-      const [, action = "help", ...parts] = prompt.split(/\\s+/u);
+      const [, action = "help", ...parts] = prompt.split(/\s+/u);
       const argument = parts.join(" ").replace(/^["']|["']$/gu, "");
       if (action === "add" && argument) {
         transcript.content = "KNOWLEDGE LIBRARY  ·  Extracting and indexing PDF locally…";
@@ -153,8 +153,8 @@ renderer.keyInput.on("keypress", (key) => {
     if (knowledgeView) {
       void listKnowledgeBooks().then((books) => {
         transcript.content = books.length
-          ? "KNOWLEDGE LIBRARY  ·  LOCAL PDF SOURCES\\n\\n" + books.map((book) => `${book.title}  ·  ${book.pages} pages  ·  ${book.chunks.length} passages\\nID: ${book.id}`).join("\\n\\n") + "\\n\\nImport: /book add /path/to/book.pdf\\nRemove: /book remove <id-or-title>"
-          : "KNOWLEDGE LIBRARY  ·  No books imported yet.\\n\\nImport a PDF with: /book add /path/to/book.pdf\\nList: /book list";
+          ? "KNOWLEDGE LIBRARY  ·  LOCAL PDF SOURCES\n\n" + books.map((book) => `${book.title}  ·  ${book.pages} pages  ·  ${book.chunks.length} passages\nID: ${book.id}`).join("\n\n") + "\n\nImport: /book add /path/to/book.pdf\nRemove: /book remove <id-or-title>"
+          : "KNOWLEDGE LIBRARY  ·  No books imported yet.\n\nImport a PDF with: /book add /path/to/book.pdf\nList: /book list";
       }).catch((error) => {
         transcript.content = `Could not load knowledge library: ${error instanceof Error ? error.message : String(error)}`;
       });
