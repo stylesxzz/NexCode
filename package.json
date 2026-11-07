@@ -1,1 +1,20 @@
-{"name":"nexcode","version":"1.0.0","private":true,"type":"module","bin":{"nexcode":"./bin/nexcode.js"},"scripts":{"start":"node apps/agent/server.js","dev":"node --watch apps/agent/server.js","test":"node --test","check":"node --check apps/agent/server.js && node --check apps/web/app.js && node --check bin/nexcode.js","link":"npm link"},"engines":{"node":">=20.11"}}
+{
+  "name": "nexcode",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "nexcode": "./bin/nexcode.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/register-global.js",
+    "start": "node apps/agent/server.js",
+    "dev": "node --watch apps/agent/server.js",
+    "test": "node --test",
+    "check": "node --check apps/agent/server.js && node --check apps/web/app.js && node --check bin/nexcode.js && node --check scripts/register-global.js",
+    "link": "npm link --force"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}
