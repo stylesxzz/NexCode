@@ -19,6 +19,7 @@ const renderer = await createCliRenderer({ exitOnCtrlC: true });
 let mode: WorkMode = "development";
 let draft = "";
 let busy = false;
+let knowledgeView = false;
 let pendingApproval: { summary: string; details: string } | null = null;
 let approvalResolver: ((approved: boolean) => void) | null = null;
 const conversation: ChatMessage[] = [];
@@ -49,7 +50,7 @@ const inputLine = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const footer = new TextRenderable(renderer, {
-  content: "Enter send  •  F1/F2/F3 modes  •  /book add|list|remove  •  Y/N approval  •  Ctrl+C quit",
+  content: "Enter send  •  F1/F2/F3 modes  •  F4 knowledge  •  /book add|list|remove  •  Y/N approval  •  Ctrl+C quit",
   fg: "#73847A",
 });
 
@@ -62,7 +63,7 @@ shell.add(footer);
 renderer.root.add(shell);
 
 function refresh() {
-  modeLine.content = `MODE  [F1] development   [F2] planning   [F3] ask   [F4] knowledge     CURRENT: ${mode.toUpperCase()}`;
+  modeLine.content = `MODE  [F1] development   [F2] planning   [F3] ask   [F4] knowledge${knowledgeView ? "  [OPEN]" : ""}     CURRENT: ${mode.toUpperCase()}`;
   inputLine.content = `> ${draft}${busy ? "  [working…]" : ""}`;
 }
 
@@ -146,6 +147,23 @@ renderer.keyInput.on("keypress", (key) => {
     return;
   }
   if (busy) return;
+
+  if (key.name === "f4") {
+    knowledgeView = !knowledgeView;
+    if (knowledgeView) {
+      void listKnowledgeBooks().then((books) => {
+        transcript.content = books.length
+          ? "KNOWLEDGE LIBRARY  ·  LOCAL PDF SOURCES\\n\\n" + books.map((book) => `${book.title}  ·  ${book.pages} pages  ·  ${book.chunks.length} passages\\nID: ${book.id}`).join("\\n\\n") + "\\n\\nImport: /book add /path/to/book.pdf\\nRemove: /book remove <id-or-title>"
+          : "KNOWLEDGE LIBRARY  ·  No books imported yet.\\n\\nImport a PDF with: /book add /path/to/book.pdf\\nList: /book list";
+      }).catch((error) => {
+        transcript.content = `Could not load knowledge library: ${error instanceof Error ? error.message : String(error)}`;
+      });
+    } else {
+      transcript.content = "Knowledge library closed. Type a message or use /book add, /book list, /book remove.";
+    }
+    refresh();
+    return;
+  }
 
   if (key.name === "f1" || key.name === "f2" || key.name === "f3") {
     const selected = key.name === "f1" ? "development" : key.name === "f2" ? "planning" : "ask";
