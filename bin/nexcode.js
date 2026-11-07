@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+import{spawn}from"node:child_process";import{fileURLToPath}from"node:url";import{dirname,resolve}from"node:path";const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");const p=spawn(process.execPath,[resolve(root,"apps/agent/server.js"),...process.argv.slice(2)],{stdio:"inherit",env:process.env});p.on("exit",c=>process.exit(c??0));

@@ -1,33 +1,17 @@
-name: CI
-
+name: Nexo CI
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/nexo-from-scratch]
   pull_request:
-  workflow_dispatch:
-
+    branches: [main]
 jobs:
-  validate:
-    name: Workspace validation
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.12.0
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.20.0
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Validate workspace package graph
-        run: pnpm --recursive list --depth -1
-      - name: Typecheck
-        run: pnpm typecheck
-      - name: Tests
-        run: pnpm test
-      - name: Build
-        run: pnpm build
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: npm run check
