@@ -130,7 +130,7 @@ export async function generateResponse(
     const knowledgeContext = formatKnowledgeContext(knowledge);
     const result = await generateText({
       model,
-      system: [systemPromptFor(mode), knowledgeContext].filter(Boolean).join("\\n\\n"),
+      system: [systemPromptFor(mode), knowledgeContext].filter(Boolean).join("\n\n"),
       ...(history.length
         ? { messages: [...history, { role: "user" as const, content: prompt }] }
         : { prompt }),
