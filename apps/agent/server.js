@@ -139,7 +139,7 @@ async function hfJson(repo,token,revision="main"){
   let data;try{data=JSON.parse(raw)}catch{throw Error("Resposta inválida da API Hugging Face.")};
   if(!Array.isArray(data))throw Error("A API Hugging Face não retornou uma lista de arquivos.");
   for(const item of data)if(item.type!=="directory"&&item.path)siblings.push({rfilename:item.path,size:item.size??item.lfs?.size??null});
-  const link=response.headers.get("link")||"",match=link.match(/<([^>]+)>;\\s*rel="next"/);
+  const link=response.headers.get("link")||"",match=link.match(/<([^>]+)>;\s*rel="next"/);
   next=match?new URL(match[1],next):null;pages++;
  }
  if(next)throw Error("O repositório contém muitas páginas de arquivos; filtre o modelo ou use um repositório GGUF menor.");
