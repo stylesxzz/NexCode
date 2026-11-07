@@ -145,9 +145,36 @@ A compatibilidade varia por modelo: respostas em formato Chat Completions e cham
 - Agente com ferramentas de terminal, leitura, escrita e listagem de arquivos.
 - Execução de comandos no workspace configurado, com timeout e limite de saída.
 - Memória persistente local e visualização em grafo.
-- Instalação e remoção de arquivos `SKILL.md` por URL HTTPS.
+- Biblioteca local de conhecimento: importar PDFs, indexar trechos e recuperar passagens relevantes automaticamente no contexto do agente.\n- Instalação e remoção de arquivos `SKILL.md` por URL HTTPS.
 - Cadastro e remoção de configurações de servidores MCP STDIO.
 - Configurações locais em `~/.nexcode/config.json`.
+
+## Biblioteca de conhecimento — PDFs
+
+O NEXCODE pode consultar livros e documentos PDF como fontes de referência, sem retreinar o modelo. Os arquivos e o índice ficam na máquina do usuário; trechos relevantes são recuperados por busca lexical e anexados ao contexto da conversa com referência ao título e à página.
+
+### Preparar o extrator PDF
+
+A importação usa o executável Poppler `pdftotext`, sem enviar o PDF para serviços externos:
+
+- Kali/Debian/Ubuntu: `sudo apt install poppler-utils`
+- Termux: `pkg install poppler`
+- macOS: `brew install poppler`
+- Windows: instale Poppler e adicione a pasta `bin` ao PATH.
+
+### Comandos no chat do NEXCODE
+
+~~~text
+/book add /caminho/para/livro.pdf
+/book list
+/book remove <book-id-ou-titulo>
+~~~
+
+No Windows PowerShell, informe o caminho completo, por exemplo `/book add C:\\Users\\voce\\Documents\\livro.pdf`. Caminhos com espaços podem ser colocados entre aspas.
+
+Após a importação, os trechos mais relevantes são incluídos automaticamente em perguntas e tarefas futuras. A biblioteca fica em `~/.nexcode/knowledge/library.json`. Faça backup dessa pasta junto com a configuração e a memória.
+
+**Limitações atuais:** PDFs com texto selecionável são suportados; PDFs digitalizados que exigem OCR ainda não são processados. A recuperação atual é lexical (sem embeddings), limitada aos cinco trechos mais relevantes por solicitação. O conteúdo dos livros é tratado como referência não confiável: instruções encontradas dentro de um PDF nunca substituem as regras de segurança, as aprovações ou as instruções do agente.
 
 ## Comandos de desenvolvimento
 
@@ -164,7 +191,7 @@ npm run check   # verifica a sintaxe dos arquivos JS
 |---|---|
 | Configuração e chave de API | `~/.nexcode/config.json` |
 | Memória | `~/.nexcode/memory.json` |
-| Skills instaladas | `~/.nexcode/skills/` |
+| Skills instaladas | `~/.nexcode/skills/` |\n| Biblioteca PDF / índice de conhecimento | `~/.nexcode/knowledge/library.json` |
 
 Faça backup dessa pasta se quiser preservar configurações e memória ao trocar de máquina. Nunca envie chaves de API para o Git.
 
