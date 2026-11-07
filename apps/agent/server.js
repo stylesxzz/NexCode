@@ -142,7 +142,7 @@ async function startGgufRuntime(filename){
  if(!info.isFile())throw Error("O modelo local não é um arquivo.");
  const old=localRuntimes.get(name);
  if(old){try{const health=await fetch(old.baseUrl.replace(/\/v1\/$/,"")+"/health",{signal:AbortSignal.timeout(1500)});if(health.ok)return old}catch{}localRuntimes.delete(name)}
- const port=await freeLocalPort(),baseUrl="http://127.0.0.1:"+port+"/v1",binary=cfg.llamaServerPath||"llama-server";
+ const port=await freeLocalPort(),baseUrl="http://127.0.0.1:"+port+"/v1",binary=process.env.NEXCODE_LLAMA_SERVER||cfg.llamaServerPath||"llama-server";
  const child=spawn(binary,["-m",file,"--host","127.0.0.1","--port",String(port),"-c","4096"],{cwd:MODEL_DIR,stdio:["ignore","ignore","pipe"]});
  let stderr="",spawnError=null;child.stderr.on("data",d=>{stderr=(stderr+d.toString()).slice(-5000)});child.once("error",e=>{spawnError=e});
  let ready=false;
@@ -240,7 +240,7 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
   const b=await body(req),repo=parseHfRepo(b.repo),revision=String(b.revision||"main").trim(),file=String(b.file||"");
   if(!/^[A-Za-z0-9._-]+$/.test(revision)||!file.toLowerCase().endsWith(".gguf")||file.split("/").includes(".."))throw Error("Revisão ou arquivo GGUF inválido.");
   const modelFileUrl="https://huggingface.co/"+repo+"/resolve/"+encodeURIComponent(revision)+"/"+file.split("/").map(encodeURIComponent).join("/")+"?download=true";
-  const response=await fetch(modelFileUrl,{headers:{...(b.token?{authorization:"Bearer "+b.token}:{})},signal:AbortSignal.timeout(120000)});
+  const response=await fetch(modelFileUrl,{headers:{...(b.token?{authorization:"Bearer "+b.token}:{})},signal:AbortSignal.timeout(43200000)});
   if(!response.ok||!response.body)throw Error("Download Hugging Face HTTP "+response.status+": "+(await response.text()).slice(0,800));
   const target=await uniqueModelPath(file),handle=await openFile(target+".part","w",0o600),total=Number(response.headers.get("content-length"))||0;let written=0,last=0;
   res.writeHead(200,{"content-type":"text/event-stream","cache-control":"no-cache, no-transform","connection":"keep-alive","x-accel-buffering":"no"});res.flushHeaders?.();
