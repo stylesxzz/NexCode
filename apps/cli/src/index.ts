@@ -7,7 +7,7 @@ import {
   TextRenderable,
   createCliRenderer,
 } from "@opentui/core";
-import { isWorkMode, type ChatMessage, type WorkMode } from "@nexcode/core";
+import { importKnowledgePdf, isWorkMode, listKnowledgeBooks, removeKnowledgeBook, type ChatMessage, type WorkMode } from "@nexcode/core";
 import { generateResponse } from "@nexcode/providers";
 
 const localEnv = resolve(process.cwd(), ".env");
@@ -49,7 +49,7 @@ const inputLine = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const footer = new TextRenderable(renderer, {
-  content: "Enter send  •  F1/F2/F3 modes  •  Y approve  •  N deny  •  Ctrl+C quit",
+  content: "Enter send  •  F1/F2/F3 modes  •  /book add|list|remove  •  Y/N approval  •  Ctrl+C quit",
   fg: "#73847A",
 });
 
@@ -76,6 +76,27 @@ async function submit() {
   transcript.content = `YOU  ·  ${prompt}\n\nNEXCODE  ·  Contacting configured provider…`;
 
   try {
+    if (prompt.startsWith("/book")) {
+      const [, action = "help", ...parts] = prompt.split(/\\s+/u);
+      const argument = parts.join(" ").replace(/^["']|["']$/gu, "");
+      if (action === "add" && argument) {
+        transcript.content = "KNOWLEDGE LIBRARY  ·  Extracting and indexing PDF locally…";
+        const book = await importKnowledgePdf(resolve(argument));
+        transcript.content = `BOOK IMPORTED  ·  ${book.title}\\n\\nPages: ${book.pages}  ·  Indexed passages: ${book.chunks.length}\\nSource: ${book.sourceName}\\n\\nThe agent will retrieve relevant excerpts automatically in future prompts.`;
+      } else if (action === "list") {
+        const books = await listKnowledgeBooks();
+        transcript.content = books.length
+          ? "KNOWLEDGE LIBRARY\\n\\n" + books.map((book) => `${book.title}  ·  ${book.pages} pages  ·  ${book.chunks.length} passages\\nID: ${book.id}`).join("\\n\\n")
+          : "KNOWLEDGE LIBRARY\\n\\nNo PDFs imported yet. Use /book add /path/to/book.pdf";
+      } else if (action === "remove" && argument) {
+        const removed = await removeKnowledgeBook(argument);
+        transcript.content = removed ? "Book removed from the local knowledge library." : "Book not found. Use /book list to see available IDs and titles.";
+      } else {
+        transcript.content = "KNOWLEDGE LIBRARY COMMANDS\\n\\n/book add /path/to/book.pdf\\n/book list\\n/book remove <book-id-or-title>\\n\\nPDF text extraction requires Poppler (pdftotext) installed and available on PATH.";
+      }
+      return;
+    }
+
     const answer = await generateResponse(prompt, mode, {
       workspaceRoot: process.cwd(),
       messages: conversation,
