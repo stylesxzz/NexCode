@@ -12,6 +12,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - name: Install dependencies and register global command
+        run: npm install
+      - name: Verify global command points to this checkout
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { realpathSync } from "node:fs";
+          import { join, resolve } from "node:path";
+          const prefix = execFileSync("npm", ["prefix", "-g"], { encoding: "utf8" }).trim();
+          const command = realpathSync(join(prefix, "bin", "nexcode"));
+          const expected = resolve("bin/nexcode.js");
+          if (command !== expected) {
+            throw new Error(`Global nexcode points to ${command}, expected ${expected}`);
+          }
+          console.log(`Global nexcode correctly links to ${command}`);
+          NODE
       - run: npm test
       - run: npm run check
