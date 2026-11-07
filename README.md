@@ -166,6 +166,20 @@ Se o endpoint gratuito não estiver disponível para V4 Flash, selecione o model
 
 A compatibilidade varia por modelo: respostas em formato Chat Completions e chamadas de ferramentas (tool calling) precisam ser suportadas para os fluxos de agente.
 
+
+## Instalar e usar modelos de IA local
+
+Em **Configurações → IA local e modelos**, existem dois caminhos de instalação:
+
+1. **Enviar arquivo do dispositivo:** selecione um arquivo `.gguf` já salvo no computador ou celular. O NexCode transfere o arquivo para `~/.nexcode/models`.
+2. **Hugging Face:** cole a página do repositório ou o ID `usuario/modelo`, liste os arquivos e escolha a variante `.gguf` para baixar. O token Hugging Face é opcional e só deve ser usado para repositórios privados ou gated.
+
+Depois da instalação, clique em **Carregar e usar**. O NexCode inicia o `llama-server` do llama.cpp em uma porta local e configura esse endpoint como o modelo ativo. O executável `llama-server` precisa estar instalado e acessível pelo `PATH`; o NexCode não baixa nem compila o runtime automaticamente. Consulte a [documentação oficial do llama.cpp](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) para obter binários ou compilar a versão compatível com seu sistema.
+
+O gerenciador integrado aceita GGUF. Repositórios Hugging Face com pesos `.safetensors`/PyTorch não podem ser iniciados diretamente pelo llama.cpp neste fluxo; use um runtime compatível, como Ollama ou LM Studio, e cadastre o endpoint na seção **Conectar um servidor local existente**. Modelos grandes podem exigir muita RAM/VRAM e espaço em disco. O download é feito diretamente pelo agente local e os arquivos permanecem na máquina.
+
+Para indicar um executável com nome ou caminho diferente de `llama-server`, defina `NEXCODE_LLAMA_SERVER` antes de iniciar o NexCode.
+
 ## Recursos disponíveis nesta versão
 
 - Interface web local responsiva: Chat, Memória, Skills, Integrações MCP e Configurações.
