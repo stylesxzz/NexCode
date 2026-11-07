@@ -20,21 +20,37 @@ As imagens são mockups SVG de documentação baseados nos componentes e estilos
 ## Requisitos
 
 - Node.js 20.11 ou superior (Node 22 LTS recomendado).
-- npm.
+- npm (incluído com Node.js).
 - Um provedor de IA com API compatível com o formato Chat Completions usado pelo agente.
 
 ## Instalação — Kali Linux, Linux, macOS e Termux
 
-Clone e instale uma única vez:
+Clone o repositório e execute a instalação:
 
 ~~~bash
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
 npm install
-npm link
 ~~~
 
-O `npm link` registra o comando global `nexcode`. Se o npm global não estiver no PATH, confira `npm prefix -g` e adicione o diretório `bin` correspondente ao PATH do seu shell.
+**O comando global `nexcode` é registrado automaticamente durante `npm install`.** O instalador executa o vínculo a partir da raiz do Nexo e substitui um vínculo global antigo do pacote legado `@nexcode/cli`, quando houver. Não é necessário executar `npm link` manualmente.
+
+Se o comando não for encontrado, atualize o cache do shell e confira o diretório global do npm:
+
+~~~bash
+hash -r
+npm prefix -g
+npm config get prefix
+~~~
+
+Em Kali/Linux/macOS com Zsh, se o diretório global `bin` não estiver no PATH:
+
+~~~bash
+echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+~~~
+
+No Termux, o diretório global de executáveis normalmente fica em `$PREFIX/bin`; confirme se ele está no PATH com `echo "$PATH"`.
 
 ### Windows (PowerShell)
 
@@ -42,8 +58,20 @@ O `npm link` registra o comando global `nexcode`. Se o npm global não estiver n
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
 npm install
-npm link
+nexcode
 ~~~
+
+O instalador usa o mecanismo de links do npm, que cria os executáveis apropriados para Windows. Se o comando não aparecer imediatamente, feche e abra o PowerShell.
+
+### Corrigir ou refazer o vínculo global
+
+Se uma instalação anterior deixou um comando global apontando para o pacote antigo, execute **na raiz do repositório** (a pasta que contém o package.json principal):
+
+~~~bash
+npm link --force
+~~~
+
+Não execute esse comando dentro de `apps/cli`: esse diretório pertence à implementação TUI antiga e não é o launcher do Nexo local.
 
 ## Iniciar e reiniciar
 
@@ -156,6 +184,7 @@ npm start       # inicia o agente sem o launcher global
 npm run dev     # reinicia o agente ao detectar alterações
 npm test        # executa os testes automatizados
 npm run check   # verifica a sintaxe dos arquivos JS
+npm run link    # refaz o vínculo global do comando nexcode
 ~~~
 
 ## Dados locais
