@@ -128,10 +128,22 @@ async function writeIncomingModel(req,target,maxBytes=200*1024**3){
   await handle.sync();await handle.close();await rename(tmp,target);return size;
  }catch(e){await handle.close().catch(()=>{});await unlink(tmp).catch(()=>{});throw e}
 }
-async function hfJson(repo,token){
- const response=await fetch("https://huggingface.co/api/models/"+repo+"?blobs=true",{headers:{accept:"application/json",...(token?{authorization:"Bearer "+token}:{})},signal:AbortSignal.timeout(30000)});
- const raw=await response.text();if(!response.ok)throw Error("Hugging Face HTTP "+response.status+": "+raw.slice(0,700));
- let data;try{data=JSON.parse(raw)}catch{throw Error("Resposta inválida da API Hugging Face.")}return data;
+async function hfJson(repo,token,revision="main"){
+ let next=new URL("https://huggingface.co/api/models/"+repo+"/tree/"+encodeURIComponent(revision));
+ next.searchParams.set("recursive","true");next.searchParams.set("expand","true");
+ const siblings=[];let pages=0;
+ while(next&&pages<40){
+  if(next.hostname!=="huggingface.co"||!next.pathname.startsWith("/api/models/"+repo+"/tree/"))throw Error("Paginação Hugging Face inválida.");
+  const response=await fetch(next,{headers:{accept:"application/json",...(token?{authorization:"Bearer "+token}:{})},signal:AbortSignal.timeout(30000)});
+  const raw=await response.text();if(!response.ok)throw Error("Hugging Face HTTP "+response.status+": "+raw.slice(0,700));
+  let data;try{data=JSON.parse(raw)}catch{throw Error("Resposta inválida da API Hugging Face.")};
+  if(!Array.isArray(data))throw Error("A API Hugging Face não retornou uma lista de arquivos.");
+  for(const item of data)if(item.type!=="directory"&&item.path)siblings.push({rfilename:item.path,size:item.size??item.lfs?.size??null});
+  const link=response.headers.get("link")||"",match=link.match(/<([^>]+)>;\\s*rel="next"/);
+  next=match?new URL(match[1],next):null;pages++;
+ }
+ if(next)throw Error("O repositório contém muitas páginas de arquivos; filtre o modelo ou use um repositório GGUF menor.");
+ return{siblings};
 }
 async function freeLocalPort(){
  const probe=http.createServer();
@@ -232,7 +244,7 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
   return send(res,201,{ok:true,name:basename(target),size,path:target});
  }
  if(u.pathname==="/api/local/hf/files"&&req.method==="POST"){
-  const b=await body(req),repo=parseHfRepo(b.repo),data=await hfJson(repo,b.token||"");
+  const b=await body(req),repo=parseHfRepo(b.repo),revision=String(b.revision||"main").trim();if(!/^[A-Za-z0-9._-]+$/.test(revision))throw Error("Revisão Hugging Face inválida.");const data=await hfJson(repo,b.token||"",revision);
   const files=(data.siblings||[]).filter(x=>String(x.rfilename||"").toLowerCase().endsWith(".gguf")).map(x=>({name:x.rfilename,size:x.size??x.lfs?.size??null})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
   return send(res,200,{repo,files,private:!!data.private});
  }
