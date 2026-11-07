@@ -32,3 +32,9 @@
  .composer{padding:9px;gap:7px}.composer .attach{width:36px;height:36px;flex-basis:36px}
  .composer textarea{min-height:46px;font-size:14px}
 }
+
+.generated-files{width:min(100%,1120px);margin:8px auto 0;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#10130d}
+.generated-file{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;color:#dbe5cf;font-size:12px}
+.generated-file+ .generated-file{border-top:1px solid var(--line)}
+.generated-file span{min-width:0;overflow-wrap:anywhere}
+.generated-file button{flex-shrink:0;padding:7px 12px;border-radius:7px;background:var(--g);color:#10140a;font-weight:700}
