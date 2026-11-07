@@ -194,7 +194,7 @@ Para indicar um executável com nome ou caminho diferente de `llama-server`, def
 - Anexos de até seis imagens de referência, armazenadas em `.nexo/references/` no workspace e enviadas ao modelo (requer modelo com visão).
 - Geração direta de arquivos PDF, DOCX e ZIP por ferramentas do agente, sem exigir dependências externas.
 - Saída ao vivo de comandos e logs do agente no painel Terminal do chat.
-- Perfis de modelos locais OpenAI-compatible (Ollama, LM Studio, llama.cpp e similares), com seleção do modelo ativo.
+- Seletor de modelo direto no chat, alternando entre a API principal, perfis de API salvos e modelos locais conectados ou arquivos GGUF instalados.
 - Configurações locais em `~/.nexcode/config.json`.
 
 ## Comandos de desenvolvimento
@@ -214,6 +214,7 @@ npm run link    # refaz o vínculo global do comando nexcode
 | Configuração e chave de API | `~/.nexcode/config.json` |
 | Memória | `~/.nexcode/memory.json` |
 | Skills instaladas | `~/.nexcode/skills/` |
+| Modelos GGUF importados/baixados | `~/.nexcode/models/` |
 
 Faça backup dessa pasta se quiser preservar configurações e memória ao trocar de máquina. Nunca envie chaves de API para o Git.
 
