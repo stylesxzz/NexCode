@@ -51,3 +51,14 @@
 #local-assets{display:grid;gap:8px;margin:10px 0 18px}
 #local-assets .model-row>div{display:flex;flex-direction:column;gap:5px;min-width:0;overflow-wrap:anywhere}
 @media(max-width:760px){.local-model-tools{grid-template-columns:1fr}}
+
+/* Chat model / API picker */
+.composer{position:relative}
+.model-picker{position:relative;display:flex;align-items:center;flex:0 0 auto}
+.composer .model-picker-toggle{width:auto;max-width:220px;min-width:108px;height:40px;padding:0 12px;border:1px solid #465633;border-radius:11px;background:#1a2113;color:#d9edba;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.composer .model-picker-toggle:hover{background:#25321a;border-color:var(--g)}
+.model-picker-panel{position:absolute;z-index:20;left:0;bottom:calc(100% + 12px);width:min(360px,calc(100vw - 32px));display:grid;gap:9px;padding:14px;background:#10130d;border:1px solid #52633a;border-radius:14px;box-shadow:0 16px 50px #000b}
+.model-picker-panel label{font-size:11px;color:var(--muted)}
+#chat-model-select{width:100%;min-width:0;background:#191e14;color:#e7f1dc;border:1px solid #3c4c2c;border-radius:9px;padding:11px;font-size:12px}
+#chat-model-status{font-size:10px;color:#b8cf8b;overflow-wrap:anywhere;line-height:1.4}
+@media(max-width:700px){.composer .model-picker-toggle{max-width:132px;min-width:76px;padding:0 8px;font-size:10px}.model-picker-panel{left:0;width:min(320px,calc(100vw - 28px))}}
