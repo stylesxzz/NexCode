@@ -127,7 +127,7 @@ https://integrate.api.nvidia.com/v1
 Identificador do modelo original:
 
 ~~~text
-deepseek-ai/deepseek-v4-flash
+deepseek-ai/deepseek-v4.1-flash
 ~~~
 
 **Atenção à disponibilidade:** a página da NVIDIA marca o endpoint gratuito de `deepseek-ai/deepseek-v4-flash` como depreciado e mostra disponibilidade por parceiros. A NVIDIA também lista `deepseek-ai/deepseek-v4.1-flash` como modelo mais recente com endpoint gratuito disponível. Confirme na página do modelo qual endpoint está habilitado para a sua conta antes de configurar.
@@ -166,6 +166,20 @@ Se o endpoint gratuito não estiver disponível para V4 Flash, selecione o model
 
 A compatibilidade varia por modelo: respostas em formato Chat Completions e chamadas de ferramentas (tool calling) precisam ser suportadas para os fluxos de agente.
 
+
+## Instalar e usar modelos de IA local
+
+Em **Configurações → IA local e modelos**, existem dois caminhos de instalação:
+
+1. **Enviar arquivo do dispositivo:** selecione um arquivo `.gguf` já salvo no computador ou celular. O NexCode transfere o arquivo para `~/.nexcode/models`.
+2. **Hugging Face:** cole a página do repositório ou o ID `usuario/modelo`, liste os arquivos e escolha a variante `.gguf` para baixar. O token Hugging Face é opcional e só deve ser usado para repositórios privados ou gated.
+
+Depois da instalação, clique em **Carregar e usar**. O NexCode inicia o `llama-server` do llama.cpp em uma porta local e configura esse endpoint como o modelo ativo. O executável `llama-server` precisa estar instalado e acessível pelo `PATH`; o NexCode não baixa nem compila o runtime automaticamente. Consulte a [documentação oficial do llama.cpp](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) para obter binários ou compilar a versão compatível com seu sistema.
+
+O gerenciador integrado aceita GGUF. Repositórios Hugging Face com pesos `.safetensors`/PyTorch não podem ser iniciados diretamente pelo llama.cpp neste fluxo; use um runtime compatível, como Ollama ou LM Studio, e cadastre o endpoint na seção **Conectar um servidor local existente**. Modelos grandes podem exigir muita RAM/VRAM e espaço em disco. O download é feito diretamente pelo agente local e os arquivos permanecem na máquina.
+
+Para indicar um executável com nome ou caminho diferente de `llama-server`, defina `NEXCODE_LLAMA_SERVER` antes de iniciar o NexCode.
+
 ## Recursos disponíveis nesta versão
 
 - Interface web local responsiva: Chat, Memória, Skills, Integrações MCP e Configurações.
@@ -174,7 +188,13 @@ A compatibilidade varia por modelo: respostas em formato Chat Completions e cham
 - Execução de comandos no workspace configurado, com timeout e limite de saída.
 - Memória persistente local e visualização em grafo.
 - Instalação e remoção de arquivos `SKILL.md` por URL HTTPS.
-- Cadastro e remoção de configurações de servidores MCP STDIO.
+- Conexão com servidores MCP remotos via HTTP(S), com descoberta de ferramentas e OAuth quando o servidor publica metadados e permite registro dinâmico de cliente.
+- Respostas do provedor em streaming, com texto aparecendo progressivamente e limite de 90 segundos para evitar espera infinita.
+- Chat ocupa a tela após a primeira mensagem; a tela de boas-vindas desaparece durante a conversa.
+- Anexos de até seis imagens de referência, armazenadas em `.nexo/references/` no workspace e enviadas ao modelo (requer modelo com visão).
+- Geração direta de arquivos PDF, DOCX e ZIP por ferramentas do agente, sem exigir dependências externas.
+- Saída ao vivo de comandos e logs do agente no painel Terminal do chat.
+- Seletor de modelo direto no chat, alternando entre a API principal, perfis de API salvos e modelos locais conectados ou arquivos GGUF instalados.
 - Configurações locais em `~/.nexcode/config.json`.
 
 ## Comandos de desenvolvimento
@@ -194,6 +214,7 @@ npm run link    # refaz o vínculo global do comando nexcode
 | Configuração e chave de API | `~/.nexcode/config.json` |
 | Memória | `~/.nexcode/memory.json` |
 | Skills instaladas | `~/.nexcode/skills/` |
+| Modelos GGUF importados/baixados | `~/.nexcode/models/` |
 
 Faça backup dessa pasta se quiser preservar configurações e memória ao trocar de máquina. Nunca envie chaves de API para o Git.
 
@@ -201,15 +222,23 @@ Faça backup dessa pasta se quiser preservar configurações e memória ao troca
 
 O agente executa comandos com os privilégios do usuário que iniciou o processo. A opção de autonomia deve ser habilitada apenas para workspaces confiáveis. Os bloqueios existentes são proteções básicas, não um sandbox de segurança. Revise o workspace, mantenha backups e não exponha a porta local publicamente. O servidor foi projetado para escutar em loopback (`127.0.0.1`).
 
+## Arquivos gerados e referências visuais
+
+O agente pode criar arquivos `.pdf`, `.docx` e `.zip` diretamente na pasta do workspace. Os documentos gerados são arquivos reais, não apenas blocos de texto na conversa. As imagens anexadas no chat são copiadas para `.nexo/references/` dentro do workspace para que possam ser reutilizadas no projeto. A análise visual depende de um modelo multimodal com suporte a imagens.
+
 ## Estado de implementação e limitações
 
 Esta é uma reconstrução limpa e funcional em evolução. Para transparência:
 
 - A execução de terminal, leitura, escrita e listagem de arquivos estão disponíveis no agente local.
+- O streaming de resposta depende de o provedor implementar Server-Sent Events no endpoint Chat Completions; respostas JSON convencionais continuam aceitas, mas não aparecem token a token.
+- A geração de PDF usa fontes padrão e layout simples; DOCX contém texto editável básico. Não substitui ferramentas avançadas de editoração.
+- A geração de ZIP é feita localmente e ignora `.git`, `node_modules` e links simbólicos ao compactar diretórios.
+- A análise de imagens depende de um modelo multimodal com suporte a entrada visual; imagens são salvas no workspace em `.nexo/references/`.
+- A integração MCP remota implementa HTTP(S), descoberta de ferramentas e OAuth com metadados e registro dinâmico de cliente; servidores com requisitos OAuth próprios podem precisar de configuração adicional.
 - Skills podem ser instaladas e removidas, mas ainda precisam ser carregadas automaticamente no contexto do modelo para orientar todas as tarefas.
-- A tela MCP permite cadastrar e remover configurações; inicialização dos processos MCP e execução das ferramentas MCP ainda precisam ser concluídas.
 - A memória persiste notas e as apresenta em grafo; embeddings, recuperação semântica e gerenciamento individual de nós ainda precisam ser concluídos.
-- Integração nativa Anthropic Messages, OAuth, SCP com verificação por e-mail/OTP, streaming e PTY interativo ainda não estão implementados.
+- PTY interativo e integração nativa Anthropic Messages ainda não estão implementados.
 
 ## Contribuição
 
