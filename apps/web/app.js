@@ -21,6 +21,7 @@ async function loadChatModels(){
   const [d,local]=await Promise.all([api("/models"),api("/local/models")]),select=$("chat-model-select");
   if(!select)return;
   select.innerHTML="";
+  const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="Selecione um modelo…";placeholder.disabled=true;select.append(placeholder);
   const groups={api:document.createElement("optgroup"),local:document.createElement("optgroup"),files:document.createElement("optgroup")};
   groups.api.label="APIs e provedores";groups.local.label="Modelos locais conectados";groups.files.label="Arquivos GGUF instalados";
   for(const m of d.models){
@@ -35,9 +36,8 @@ async function loadChatModels(){
   for(const key of ["api","local","files"])if(groups[key].children.length)select.append(groups[key]);
   const active=d.models.find(m=>m.id===d.activeModelId);
   if(active)select.value="profile:"+active.id;
-  else if(d.activeModelId==="__default__")select.value="profile:__default__";
-  else if(select.options.length)select.selectedIndex=0;
-  if(!select.options.length){const option=document.createElement("option");option.value="";option.textContent="Nenhum modelo — configure em Configurações";select.append(option)}
+  else select.value="";
+  if(select.options.length===1)placeholder.textContent="Nenhum modelo — configure em Configurações";
   const chosen=select.selectedOptions[0]?.textContent||"Sem modelo";
   $("model-picker-toggle").textContent="IA · "+chosen.replace(/\s*·.*/,"").slice(0,24);
   $("chat-model-status").textContent=active?.baseUrl||(d.activeModelId==="__default__"?"API principal ativa": "Escolha um perfil ou arquivo GGUF instalado.");
