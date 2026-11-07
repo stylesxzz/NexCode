@@ -101,7 +101,7 @@ async function agent(msgs,emit){
  const model=activeModel();if(!model.model||(!model.apiKey&&!/localhost|127\.0\.0\.1/.test(model.baseUrl||"")))throw Error("Configure um modelo e sua conexão nas Configurações.");
  const latest=msgs[msgs.length-1],plain=typeof latest?.content==="string"?latest.content:(Array.isArray(latest?.content)?latest.content.map(x=>x.text||"").join(" "):"");
  const simple=/^(oi|olá|ola|hello|hi|bom dia|boa tarde|boa noite|e aí|eai|tudo bem|obrigado|obrigada|valeu)[!.?\s]*$/i.test(plain.trim());
- const wantsTools=/\\b(crie|criar|faça|fazer|gere|gerar|construa|construir|implemente|implementar|corrija|corrigir|teste|testar|execute|executar|analise|analisar|investigue|investigar|arquivo|pdf|docx|zip|site|app|aplicativo|projeto|código|codigo|terminal|instale|instalar|compacte|pentest|repositório|repositorio|repo|workspace|pasta|imagem|referência|referencia)\\b/i.test(plain)||Array.isArray(latest?.content);
+ const wantsTools=/\b(crie|criar|faça|fazer|gere|gerar|construa|construir|implemente|implementar|corrija|corrigir|teste|testar|execute|executar|analise|analisar|investigue|investigar|arquivo|pdf|docx|zip|site|app|aplicativo|projeto|código|codigo|terminal|instale|instalar|compacte|pentest|repositório|repositorio|repo|workspace|pasta|imagem|referência|referencia)\b/i.test(plain)||Array.isArray(latest?.content);
  let availableTools=simple||!wantsTools?[]:toolCatalog();
  for(let i=0;i<8;i++){
   emit("status",{message:simple?"Preparando uma resposta rápida…":"Conectando ao modelo "+model.model+"…"});
