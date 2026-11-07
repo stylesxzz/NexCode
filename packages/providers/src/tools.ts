@@ -230,6 +230,9 @@ export function createWorkspaceTools(options: WorkspaceToolsOptions) {
         const printable = [command, ...args].join(" ");
         if (/(^|\s)(shutdown|reboot|mkfs|fdisk|format)(\s|$)/i.test(printable) ||
             /rm\s+(-[a-z]*r[a-z]*f|--no-preserve-root)\s+\//i.test(printable) ||
+            /git\s+reset\s+--hard\b/i.test(printable) ||
+            /git\s+clean\s+-[a-z]*f/i.test(printable) ||
+            /find\s+.+\s+-delete\b/i.test(printable) ||
             /:\s*\(\)\s*\{/i.test(printable) ||
             /\|\s*(sh|bash|zsh)\b/i.test(printable)) {
           throw new Error("This command matches a blocked destructive pattern.");

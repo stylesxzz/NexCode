@@ -7,7 +7,6 @@ release/
 !.env.example
 *.log
 .DS_Store
-.nexcode/*
-!.nexcode/mcp.example.json
-!.nexcode/skills/
-!.nexcode/skills/**/
+.nexo/audit.jsonl
+.nexocode/mcp.json
+.nexo/config.json

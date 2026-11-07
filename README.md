@@ -1,199 +1,155 @@
-# NEXCODE
+# Nexo
 
-Agente de programação open source, local e independente de provedor. O NEXCODE combina uma TUI OpenTUI, ferramentas de workspace, aprovações explícitas, adaptadores de IA e integração MCP por stdio.
+**Nexo** é um workspace de IA local-first. A interface abre no navegador, mas o agente roda no próprio dispositivo e executa tarefas no terminal e no workspace que você selecionou.
 
-## Recursos implementados
+A imagem de referência compartilhada no projeto orienta a composição: painel lateral escuro, conversa central, orb de IA, cartões de ação e acentos verde-lima no lugar do amarelo.
 
-- TUI de terminal escura com detalhes verdes.
-- Modos **Development**, **Planning** e **Ask**.
-- Provedores: NVIDIA NIM, OpenAI, Anthropic, Google Gemini, Ollama e endpoints OpenAI-compatible.
-- Ferramentas do workspace: listar arquivos, ler arquivos e pesquisar texto.
-- No modo Development: criar/substituir arquivos e executar programas com aprovação explícita.
-- Comandos executados diretamente, sem shell, com diretório de trabalho limitado ao repositório, ambiente reduzido, limite de tempo e saída limitada.
-- MCP stdio: inicialização do servidor e cada chamada de ferramenta exigem aprovação.
-- Bloqueio de leitura de arquivos `.env`, `.git` e `node_modules`; bloqueio de caminhos fora do workspace e escritas por symlink.
-- Registro local das decisões de aprovação em `.nexcode/audit.jsonl`.
-- PNPM workspace, Turbo, TypeScript, Vitest e CI com lockfile congelado.
+## O que existe nesta versão
 
-## Modos
+- Interface web responsiva para desktop e celular, servida pelo agente local.
+- Processo local Node.js que faz a ponte autenticada entre navegador e terminal.
+- Pareamento inicial por código exibido no terminal; API vinculada somente a 127.0.0.1.
+- Modos Development, Planning e Ask.
+- Permissões guiadas ou autonomia para ações rotineiras dentro do workspace escolhido.
+- Revisão humana obrigatória para operações de alto risco, inicialização de servidores MCP e chamadas MCP.
+- Catálogo de provedores: NVIDIA NIM, OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, DeepSeek, Mistral, Together AI, Fireworks, Cerebras, xAI, Perplexity, Cohere, Ollama e endpoints OpenAI-compatible.
+- Skills em Markdown instaladas por HTTPS de arquivos SKILL.md do GitHub.
+- Integração MCP local via STDIO, com conexão e remoção pela interface.
+- Memória persistente em grafo local, com recuperação de notas relevantes para conversas seguintes.
+- Ferramentas de workspace reutilizadas do núcleo existente: listar, ler, pesquisar, escrever e executar programas.
 
-| Tecla | Modo | Permissões |
-|---|---|---|
-| F1 | `development` | Leitura, pesquisa, escrita e comandos; escrita/comando sempre pedem aprovação |
-| F2 | `planning` | Apenas leitura e pesquisa; sem comandos, MCP ou escrita |
-| F3 | `ask` | Conversa sem ferramentas do workspace |
-
-Quando uma ação exigir aprovação, a TUI mostra o resumo, os argumentos e o contexto. Pressione **Y** para aprovar ou **N** para negar. Negar não executa a ação.
+A presença de um provedor no catálogo não garante que todo modelo daquele serviço suporte chamadas de ferramentas. Informe o identificador exato do modelo habilitado na sua conta.
 
 ## Requisitos
 
-- Git
-- Node.js **22.12+**
-- pnpm **10.20.0**
-- Bun **1.3.14+** (runtime da OpenTUI)
-
-O OpenTUI usa FFI nativo. O runtime Bun é o caminho suportado pelo projeto; Node.js precisa de versão 26.4+ e `--experimental-ffi`.
-
-Confira:
-
-```bash
-node --version
-pnpm --version
-bun --version
-git --version
-```
+- Node.js 22.12 ou superior.
+- pnpm 10.20.0.
+- Git.
+- Chave de API de um provedor compatível (ou Ollama local).
 
 ## Instalação
 
-### Linux
-
-Instale Git, Node.js 22.12+ e habilite PNPM:
-
-```bash
-corepack enable
-corepack prepare pnpm@10.20.0 --activate
-curl -fsSL https://bun.sh/install | bash
-```
-
-Abra um novo terminal, depois:
-
-```bash
+~~~bash
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
-pnpm install --frozen-lockfile
-```
-
-### Windows (PowerShell)
-
-Instale Git e Node.js 22.12+. Depois:
-
-```powershell
 corepack enable
 corepack prepare pnpm@10.20.0 --activate
-powershell -c "irm bun.sh/install.ps1 | iex"
-git clone https://github.com/stylesxzz/NexCode.git
-cd NexCode
 pnpm install --frozen-lockfile
-```
+~~~
 
-### macOS
+## Iniciar o Nexo
 
-Instale Git, Node.js e Bun. Ative PNPM com Corepack e siga os mesmos comandos de clone e instalação da seção Linux.
+Inicie o agente a partir do repositório Nexo. Por padrão, o workspace é o diretório atual:
 
-### Termux / Android
+~~~bash
+pnpm dev
+~~~
 
-A compatibilidade do runtime nativo Bun + OpenTUI no Termux/Android não está garantida. Use uma distribuição Linux suportada ou computador para executar a TUI.
+Para apontar o agente para outra pasta, configure NEXO_WORKSPACE antes de iniciar.
 
-## Configuração da IA
+Linux, macOS e Termux:
 
-Copie o modelo de configuração:
+~~~bash
+NEXO_WORKSPACE=/caminho/para/projeto pnpm dev
+~~~
 
-```bash
-cp .env.example .env
-```
+Windows PowerShell:
 
-Exemplo NVIDIA NIM:
+~~~powershell
+$env:NEXO_WORKSPACE = "C:\caminho\para\projeto"
+pnpm dev
+~~~
 
-```env
-NEXCODE_PROVIDER=nvidia
-NEXCODE_BASE_URL=https://integrate.api.nvidia.com/v1
-NEXCODE_API_KEY=sua_chave_nvidia
-NEXCODE_MODEL=meta/llama-3.3-70b-instruct
-```
+Abra no mesmo dispositivo:
 
-Outros provedores:
+~~~text
+http://127.0.0.1:4173
+~~~
 
-- OpenAI: `NEXCODE_PROVIDER=openai`, `OPENAI_API_KEY` e nome do modelo em `NEXCODE_MODEL`.
-- Anthropic: `NEXCODE_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` e modelo em `NEXCODE_MODEL`.
-- Gemini: `NEXCODE_PROVIDER=google`, `GOOGLE_API_KEY` e modelo em `NEXCODE_MODEL`.
-- Ollama: `NEXCODE_PROVIDER=ollama`, `NEXCODE_BASE_URL=http://localhost:11434/v1` e modelo local em `NEXCODE_MODEL`.
-- Outro endpoint compatível: `NEXCODE_PROVIDER=openai-compatible`, `NEXCODE_API_KEY`, `NEXCODE_BASE_URL` e `NEXCODE_MODEL`.
+No primeiro início, o terminal exibe um código de pareamento. Digite-o na janela do navegador. O token do navegador e as configurações ficam na pasta privada ~/.nexo (no Windows, dentro do perfil do usuário).
 
-Não compartilhe nem envie seu `.env` ao GitHub. O NEXCODE não precisa de uma chave de API para instalar, mas precisa de uma chave válida ou servidor Ollama para responder com IA.
+Para usar outro workspace:
 
-## Servidores MCP (opcional)
+~~~bash
+node apps/agent/dist/server.js /caminho/para/projeto
+~~~
 
-O NEXCODE aceita servidores MCP locais por stdio. Crie sua configuração privada:
+No Windows, passe o caminho absoluto do diretório como argumento. No Termux/Kali, o agente executa comandos com as ferramentas disponíveis no ambiente em que o Node.js foi iniciado.
 
-```bash
-mkdir -p .nexcode
-cp .nexcode/mcp.example.json .nexcode/mcp.json
-```
+## Provedores e modelos
 
-Edite `.nexcode/mcp.json` e substitua o servidor de exemplo pelo pacote MCP que deseja usar. Exemplo de formato:
+Abra **Configurações → Provedor de IA**. Escolha o serviço, informe o model ID, endpoint (se necessário) e a chave de API. As credenciais são salvas localmente em ~/.nexo/config.json com permissões restritivas; não coloque chaves em commits, Skills ou arquivos de projeto.
 
-```json
-{
-  "servers": [
-    {
-      "name": "filesystem",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
-      "env": {}
-    }
-  ]
-}
-```
+OpenAI, Anthropic e Gemini usam adaptadores nativos. NVIDIA NIM, Ollama e o catálogo compatível usam o adaptador de chat OpenAI-compatible. Para serviços com endpoints compatíveis, confirme a URL e o model ID na documentação do próprio provedor.
 
-Na primeira utilização, o NEXCODE pede aprovação antes de iniciar cada servidor. Cada chamada de ferramenta MCP também pede aprovação individual. O servidor roda com variáveis de ambiente básicas e somente as variáveis extras declaradas explicitamente na configuração.
+## Modos e permissões
 
-## Executar
+- **Development:** leitura, pesquisa, criação/edição de arquivos e execução de comandos dentro do workspace.
+- **Planning:** leitura e análise; não escreve nem executa comandos.
+- **Ask:** conversa sem ferramentas de workspace.
 
-Na raiz do repositório:
+No **Modo guiado**, o agente pede aprovação antes de alterações e comandos. Em **Autonomia no workspace**, você concede uma permissão inicial para ações rotineiras dentro da pasta escolhida. Operações destrutivas, privilégios elevados, SSH/SCP, inicialização MCP e chamadas MCP ainda exigem revisão humana.
 
-```bash
-pnpm dev:cli
-```
+Os comandos são iniciados como processos filhos, sem invocar um shell implicitamente, com limite de tempo e saída. O modo autônomo não deve ser interpretado como acesso irrestrito ao sistema operacional. Faça backup/commit antes de tarefas que possam alterar muitos arquivos.
 
-Para build de produção:
+## Skills
 
-```bash
-pnpm build
-pnpm start:cli
-```
+Abra a aba **Skills** e instale um link HTTPS que aponte diretamente para um arquivo SKILL.md no GitHub. O conteúdo Markdown é carregado como instrução quando relevante para o pedido. O instalador não executa scripts do repositório.
 
-Atalhos:
+## MCP
 
-- `F1`: Development
-- `F2`: Planning
-- `F3`: Ask
-- `Enter`: enviar mensagem
-- `Backspace`: apagar caractere
-- `Y` / `N`: aprovar / negar uma ação pendente
-- `Ctrl+C`: sair
+Abra **Integrações MCP** e cadastre o nome, executável e argumentos de um servidor local STDIO. Remova a conexão pela mesma tela. O Nexo pede aprovação antes de iniciar o servidor e antes de usar cada ferramenta.
 
-## Validação
+A versão atual implementa transporte local STDIO. MCP remoto por HTTP/SSE não está implementado nesta versão.
 
-```bash
+## Memória persistente
+
+A aba **Memória** mostra os nós e relações salvos. A memória guarda trechos resumidos de pedidos e respostas e recupera notas relevantes por palavras-chave. Os dados ficam em ~/.nexo/memory.json.
+
+Isso é recuperação de contexto sobre notas armazenadas, não treinamento do modelo nem atualização automática de pesos. Você pode desativar a captura de novos aprendizados nas configurações ou apagar o arquivo local para limpar a memória.
+
+## Plataformas
+
+- Kali Linux e outras distribuições Linux.
+- macOS.
+- Windows com PowerShell ou Windows Terminal.
+- Android com Termux, desde que exista uma versão compatível do Node.js 22.12+ e os programas que você pedir estejam instalados.
+
+O navegador deve ser aberto no mesmo dispositivo onde o agente está rodando. O serviço é deliberadamente vinculado a 127.0.0.1 e não é uma aplicação hospedada acessível pela internet.
+
+## Segurança e limites conhecidos
+
+- A página web não recebe acesso ao shell. Somente o processo local autenticado executa ferramentas.
+- O serviço não escuta na rede local; não exponha a porta por proxy ou túnel sem uma camada adicional de autenticação e transporte seguro.
+- MCP e Skills são extensões poderosas. Instale conteúdo de fontes confiáveis.
+- SCP é um protocolo de cópia sobre SSH; não fornece verificação por e-mail. Uma etapa de e-mail/OTP requer um provedor de e-mail ou MCP separado e configurado. Esse conector de e-mail não está incluído nesta versão.
+- A qualidade e o uso de ferramentas dependem do suporte a tool calling do modelo escolhido.
+
+## Desenvolvimento
+
+~~~bash
 pnpm typecheck
 pnpm test
 pnpm build
-```
+~~~
 
-O GitHub Actions repete instalação congelada, descoberta do workspace, typecheck, testes e build em cada push para `main` e pull request.
-
-## Segurança e limites
-
-- O modelo não recebe acesso direto ao shell: ele solicita uma ferramenta e a aplicação mostra a aprovação antes da execução.
-- Os comandos são iniciados sem shell e com argumentos separados. Revise o comando antes de aprovar; um programa aprovado ainda pode realizar ações relevantes no sistema.
-- Escritas ficam limitadas ao workspace e são bloqueadas em arquivos de ambiente secretos, `.git`, `node_modules` e caminhos simbólicos.
-- MCP é poderoso: instale apenas servidores confiáveis e revise os argumentos de cada chamada.
-- O log de aprovação fica em `.nexcode/audit.jsonl`, localmente, e não é enviado ao Git.
-- A aprovação não substitui backup. Faça commit ou backup antes de tarefas que alterem muitos arquivos.
-- A qualidade das chamadas de ferramentas depende de o modelo escolhido suportar tool calling.
+O workflow do GitHub Actions valida instalação congelada, typecheck, testes e build.
 
 ## Estrutura
 
-```text
+~~~text
 apps/
-  cli/             # TUI OpenTUI
+  agent/           # servidor web local e API do agente
+  cli/             # interface de terminal legada opcional
 packages/
-  core/            # Modos e prompts
-  providers/       # Modelos, ferramentas e aprovações
-  mcp/             # Cliente MCP stdio
-tests/             # Testes de segurança do workspace
-```
+  core/            # modos e prompts
+  providers/       # adaptadores, ferramentas e aprovações
+  mcp/             # cliente MCP STDIO
+docs/
+  ARCHITECTURE.md  # limites e arquitetura local-first
+tests/             # testes do workspace
+~~~
 
 ## Licença
 
-MIT. Consulte [LICENSE](LICENSE).
+MIT. Consulte LICENSE.

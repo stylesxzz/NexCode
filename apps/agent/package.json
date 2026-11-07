@@ -1,0 +1,22 @@
+{
+  "name": "@nexo/agent",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "bin": { "nexo": "./dist/server.js" },
+  "scripts": {
+    "dev": "pnpm run build && node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"import('node:fs').then(fs=>fs.rmSync('dist',{recursive:true,force:true}))\""
+  },
+  "dependencies": {
+    "@nexcode/core": "workspace:*",
+    "@nexcode/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.3"
+  }
+}
