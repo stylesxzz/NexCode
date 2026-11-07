@@ -19,3 +19,10 @@ The agent loop is bounded by `maxSteps` (default 12). Tool requests are executed
 4. Allow the model to propose stable facts or solutions through `memory_save`; user approval is mandatory.
 
 Memory is a local retrieval store, not model fine-tuning. It should never contain API keys, passwords or sensitive personal information.
+
+
+## PDF knowledge library
+
+The core knowledge module imports selectable-text PDFs locally through Poppler's `pdftotext` executable. It splits extracted pages into overlapping passages, stores a local JSON library under `~/.nexcode/knowledge/library.json`, and ranks passages using lexical token overlap. The provider retrieves the top five passages for each prompt and appends them to the system context with book/page attribution.
+
+PDF content is untrusted reference data, never executable instructions. The context explicitly tells the model to ignore prompt-injection attempts inside documents and preserve normal tool approvals. The current implementation does not upload documents, perform model fine-tuning, run OCR, or use vector embeddings.
