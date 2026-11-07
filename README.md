@@ -174,7 +174,7 @@ A compatibilidade varia por modelo: respostas em formato Chat Completions e cham
 - Execução de comandos no workspace configurado, com timeout e limite de saída.
 - Memória persistente local e visualização em grafo.
 - Instalação e remoção de arquivos `SKILL.md` por URL HTTPS.
-- Cadastro e remoção de configurações de servidores MCP STDIO.
+- Conexão com servidores MCP remotos via HTTP(S), com descoberta de ferramentas e OAuth quando o servidor publica metadados e permite registro dinâmico de cliente.\n- Saída ao vivo de comandos e logs do agente no painel Terminal do chat.\n- Perfis de modelos locais OpenAI-compatible (Ollama, LM Studio, llama.cpp e similares), com seleção do modelo ativo.
 - Configurações locais em `~/.nexcode/config.json`.
 
 ## Comandos de desenvolvimento
