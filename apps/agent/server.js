@@ -1,5 +1,5 @@
 import http from "node:http";
-import { readFile, writeFile, mkdir, readdir, unlink } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir, unlink, open as openFile, rename, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { deflateRawSync } from "node:zlib";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
@@ -7,15 +7,16 @@ import { resolve, join, relative, isAbsolute, extname, basename } from "node:pat
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 
-const ROOT=resolve(fileURLToPath(new URL("../../",import.meta.url))), WEB=join(ROOT,"apps/web"), HOME=join(homedir(),".nexcode"), PORT=+(process.env.NEXCODE_PORT||4173), WORK=resolve(process.env.NEXCODE_WORKSPACE||process.argv[2]||process.cwd());
+const ROOT=resolve(fileURLToPath(new URL("../../",import.meta.url))), WEB=join(ROOT,"apps/web"), HOME=join(homedir(),".nexcode"), MODEL_DIR=join(HOME,"models"), PORT=+(process.env.NEXCODE_PORT||4173), WORK=resolve(process.env.NEXCODE_WORKSPACE||process.argv[2]||process.cwd());
 await mkdir(HOME,{recursive:true,mode:0o700});
+await mkdir(MODEL_DIR,{recursive:true,mode:0o700});
 const cf=join(HOME,"config.json"),mf=join(HOME,"memory.json"),sd=join(HOME,"skills");
 await mkdir(sd,{recursive:true,mode:0o700});
 const read=async(p,d)=>{try{return JSON.parse(await readFile(p,"utf8"))}catch{return d}};
 const cfg=await read(cf,{baseUrl:"https://api.openai.com/v1",model:"",apiKey:"",autonomy:false,mcp:[],models:[]});
 cfg.mcp??=[];cfg.models??=[];
 let mem=await read(mf,{nodes:[],edges:[]}),token=randomBytes(32).toString("hex"),code=String(Math.floor(100000+Math.random()*900000)),paired=false;
-const mcpLive=new Map(),oauthPending=new Map(),mcpToolMap=new Map();
+const mcpLive=new Map(),oauthPending=new Map(),mcpToolMap=new Map(),localRuntimes=new Map();
 const save=()=>writeFile(cf,JSON.stringify(cfg,null,2),{mode:0o600}),saveMem=()=>writeFile(mf,JSON.stringify(mem,null,2),{mode:0o600});
 const inside=(base,p)=>{const r=relative(base,p);return r===""||(!r.startsWith("..")&&!isAbsolute(r))};
 const eq=(a,b)=>{const x=Buffer.from(a||""),y=Buffer.from(b||"");return x.length===y.length&&timingSafeEqual(x,y)};
@@ -93,6 +94,72 @@ const builtin=[
 function toolCatalog(){const all=[...builtin];mcpToolMap.clear();for(const [name,server] of mcpLive)for(const t of server.tools||[]){const fn="mcp__"+name.replace(/[^a-z0-9_]/gi,"_")+"__"+t.name.replace(/[^a-z0-9_]/gi,"_");mcpToolMap.set(fn,{server:name,tool:t.name});all.push({type:"function",function:{name:fn,description:"MCP "+name+": "+(t.description||t.name),parameters:t.inputSchema||{type:"object",properties:{}}}})}return all}
 
 function safeWorkspacePath(value,fallback){const p=resolve(WORK,value||fallback);if(!inside(WORK,p))throw Error("Caminho fora do workspace");return p}
+function safeModelFilename(value){
+ const name=basename(String(value||"")).replace(/[^a-z0-9._-]/gi,"_");
+ if(!name||name==="."||name===".."||!name.toLowerCase().endsWith(".gguf"))throw Error("Somente arquivos de modelo .gguf são aceitos pelo runtime integrado.");
+ return name;
+}
+function parseHfRepo(value){
+ const raw=String(value||"").trim();
+ let repo=raw;
+ if(/^https?:\/\//i.test(raw)){
+  const u=new URL(raw);
+  if(u.protocol!=="https:"||u.hostname!=="huggingface.co")throw Error("Use um link https://huggingface.co/...");
+  const parts=u.pathname.split("/").filter(Boolean);
+  if(parts.length<2)throw Error("Informe o link da página de um repositório de modelo.");
+  repo=parts.slice(0,2).join("/");
+ }else if(raw.includes("/"))repo=raw.replace(/^huggingface\.co\//i,"").split(/[?#]/)[0].replace(/^\/+|\/+$/g,"");
+ if(!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repo))throw Error("Informe o ID no formato usuario/modelo ou o link da página do Hugging Face.");
+ return repo;
+}
+async function uniqueModelPath(filename){
+ const base=safeModelFilename(filename),dot=base.toLowerCase().lastIndexOf(".gguf"),stem=base.slice(0,dot);
+ let target=join(MODEL_DIR,base),i=1;
+ while(true){try{await stat(target);target=join(MODEL_DIR,stem+"-"+i+++".gguf")}catch(e){if(e.code==="ENOENT")return target;throw e}}
+}
+async function writeIncomingModel(req,target,maxBytes=200*1024**3){
+ const tmp=target+".part",handle=await openFile(tmp,"w",0o600);let size=0;
+ try{
+  for await(const chunk of req){
+   size+=chunk.length;if(size>maxBytes)throw Error("O modelo excede o limite de 200 GB.");
+   let offset=0;while(offset<chunk.length){const result=await handle.write(chunk,offset,chunk.length-offset,size-chunk.length+offset);if(!result.bytesWritten)throw Error("Falha ao gravar o arquivo do modelo.");offset+=result.bytesWritten}
+  }
+  if(!size)throw Error("O arquivo enviado está vazio.");
+  await handle.sync();await handle.close();await rename(tmp,target);return size;
+ }catch(e){await handle.close().catch(()=>{});await unlink(tmp).catch(()=>{});throw e}
+}
+async function hfJson(repo,token){
+ const response=await fetch("https://huggingface.co/api/models/"+repo+"?blobs=true",{headers:{accept:"application/json",...(token?{authorization:"Bearer "+token}:{})},signal:AbortSignal.timeout(30000)});
+ const raw=await response.text();if(!response.ok)throw Error("Hugging Face HTTP "+response.status+": "+raw.slice(0,700));
+ let data;try{data=JSON.parse(raw)}catch{throw Error("Resposta inválida da API Hugging Face.")}return data;
+}
+async function freeLocalPort(){
+ const probe=http.createServer();
+ return new Promise((resolvePort,reject)=>{probe.once("error",reject);probe.listen(0,"127.0.0.1",()=>{const port=probe.address().port;probe.close(error=>error?reject(error):resolvePort(port))})});
+}
+async function startGgufRuntime(filename){
+ const name=safeModelFilename(filename),file=join(MODEL_DIR,name),info=await stat(file);
+ if(!info.isFile())throw Error("O modelo local não é um arquivo.");
+ const old=localRuntimes.get(name);
+ if(old){try{const health=await fetch(old.baseUrl.replace(/\/v1\/$/,"")+"/health",{signal:AbortSignal.timeout(1500)});if(health.ok)return old}catch{}localRuntimes.delete(name)}
+ const port=await freeLocalPort(),baseUrl="http://127.0.0.1:"+port+"/v1",binary=cfg.llamaServerPath||"llama-server";
+ const child=spawn(binary,["-m",file,"--host","127.0.0.1","--port",String(port),"-c","4096"],{cwd:MODEL_DIR,stdio:["ignore","ignore","pipe"]});
+ let stderr="",spawnError=null;child.stderr.on("data",d=>{stderr=(stderr+d.toString()).slice(-5000)});child.once("error",e=>{spawnError=e});
+ let ready=false;
+ for(let i=0;i<180;i++){
+  if(spawnError)break;
+  if(child.exitCode!==null)break;
+  try{const health=await fetch(baseUrl.replace(/\/v1\/$/,"")+"/health",{signal:AbortSignal.timeout(1500)});if(health.ok){ready=true;break}}catch{}
+  await new Promise(r=>setTimeout(r,1000));
+ }
+ if(!ready){child.kill("SIGTERM");if(spawnError?.code==="ENOENT")throw Error("Não encontrei o llama-server. Instale o runtime llama.cpp e deixe o executável no PATH, ou configure NEXCODE_LLAMA_SERVER. "+spawnError.message);throw Error("O llama-server não carregou o modelo em 180 segundos. "+(stderr||"Verifique a memória RAM/VRAM e o arquivo GGUF.").slice(-1800))}
+ const profile={id:"gguf-"+randomBytes(8).toString("hex"),name:"GGUF — "+name,baseUrl,model:"local-model",apiKey:"",kind:"local",fileName:name};
+ cfg.models=[...cfg.models.filter(x=>x.fileName!==name),profile];cfg.activeModelId=profile.id;await save();
+ localRuntimes.set(name,{child,baseUrl,profile});
+ child.once("exit",()=>{const current=localRuntimes.get(name);if(current?.child===child)localRuntimes.delete(name)});
+ return{profile,baseUrl};
+}
+
 function xmlEscape(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;")}
 function crc32(buf){let c=0xffffffff;for(const b of buf){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
 function makeZip(entries){
@@ -155,6 +222,41 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  if(u.pathname==="/api/status")return send(res,200,{workspace:WORK,model:activeModel().model,autonomy:cfg.autonomy});
  if(u.pathname==="/api/config"&&req.method==="GET"){const c={...cfg,apiKey:cfg.apiKey?"••••••••":""};return send(res,200,c)}
  if(u.pathname==="/api/config"&&req.method==="POST"){const b=await body(req);for(const k of["baseUrl","model","autonomy","provider"])if(k in b)cfg[k]=b[k];if(b.apiKey&&b.apiKey!=="••••••••")cfg.apiKey=b.apiKey;await save();return send(res,200,{ok:true})}
+
+ if(u.pathname==="/api/local/models"&&req.method==="GET"){
+  const files=[];for(const name of await readdir(MODEL_DIR)){if(!name.toLowerCase().endsWith(".gguf"))continue;try{const info=await stat(join(MODEL_DIR,name));if(info.isFile())files.push({name,size:info.size,active:cfg.models.some(x=>x.fileName===name&&x.id===cfg.activeModelId),running:localRuntimes.has(name)})}catch{}}
+  return send(res,200,{directory:MODEL_DIR,files:files.sort((a,b)=>a.name.localeCompare(b.name))});
+ }
+ if(u.pathname==="/api/local/models/upload"&&req.method==="POST"){
+  const target=await uniqueModelPath(u.searchParams.get("name")||"model.gguf"),size=await writeIncomingModel(req,target);
+  return send(res,201,{ok:true,name:basename(target),size,path:target});
+ }
+ if(u.pathname==="/api/local/hf/files"&&req.method==="POST"){
+  const b=await body(req),repo=parseHfRepo(b.repo),data=await hfJson(repo,b.token||"");
+  const files=(data.siblings||[]).filter(x=>String(x.rfilename||"").toLowerCase().endsWith(".gguf")).map(x=>({name:x.rfilename,size:x.size??x.lfs?.size??null})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return send(res,200,{repo,files,private:!!data.private});
+ }
+ if(u.pathname==="/api/local/hf/download"&&req.method==="POST"){
+  const b=await body(req),repo=parseHfRepo(b.repo),revision=String(b.revision||"main").trim(),file=String(b.file||"");
+  if(!/^[A-Za-z0-9._-]+$/.test(revision)||!file.toLowerCase().endsWith(".gguf")||file.split("/").includes(".."))throw Error("Revisão ou arquivo GGUF inválido.");
+  const modelFileUrl="https://huggingface.co/"+repo+"/resolve/"+encodeURIComponent(revision)+"/"+file.split("/").map(encodeURIComponent).join("/")+"?download=true";
+  const response=await fetch(modelFileUrl,{headers:{...(b.token?{authorization:"Bearer "+b.token}:{})},signal:AbortSignal.timeout(120000)});
+  if(!response.ok||!response.body)throw Error("Download Hugging Face HTTP "+response.status+": "+(await response.text()).slice(0,800));
+  const target=await uniqueModelPath(file),handle=await openFile(target+".part","w",0o600),total=Number(response.headers.get("content-length"))||0;let written=0,last=0;
+  res.writeHead(200,{"content-type":"text/event-stream","cache-control":"no-cache, no-transform","connection":"keep-alive","x-accel-buffering":"no"});res.flushHeaders?.();
+  try{
+   sse(res,"progress",{received:0,total,percent:0});
+   for await(const chunk of response.body){let offset=0;while(offset<chunk.length){const result=await handle.write(chunk,offset,chunk.length-offset,written+offset);if(!result.bytesWritten)throw Error("Falha ao gravar o modelo baixado.");offset+=result.bytesWritten}written+=chunk.length;if(Date.now()-last>700){last=Date.now();sse(res,"progress",{received:written,total,percent:total?Math.min(100,Math.round(written/total*100)):0})}}
+   if(!written)throw Error("A Hugging Face retornou um arquivo vazio.");
+   await handle.sync();await handle.close();await rename(target+".part",target);sse(res,"complete",{name:basename(target),size:written,path:target});
+  }catch(e){await handle.close().catch(()=>{});await unlink(target+".part").catch(()=>{});sse(res,"error",{message:e.message})}
+  return res.end();
+ }
+ if(u.pathname==="/api/local/models/start"&&req.method==="POST"){const b=await body(req),result=await startGgufRuntime(b.name);return send(res,200,{ok:true,...result})}
+ if(u.pathname.startsWith("/api/local/models/")&&req.method==="DELETE"){
+  const name=safeModelFilename(decodeURIComponent(u.pathname.split("/").pop())),file=join(MODEL_DIR,name),runtime=localRuntimes.get(name);if(runtime){runtime.child.kill("SIGTERM");localRuntimes.delete(name)}
+  await unlink(file).catch(e=>{if(e.code!=="ENOENT")throw e});cfg.models=cfg.models.filter(x=>x.fileName!==name);if(cfg.activeModelId&&!cfg.models.some(x=>x.id===cfg.activeModelId))cfg.activeModelId=cfg.models[0]?.id||"";await save();return send(res,200,{ok:true});
+ }
  if(u.pathname==="/api/models"&&req.method==="GET")return send(res,200,{models:cfg.models.map(x=>({...x,apiKey:x.apiKey?"••••••••":""})),activeModelId:cfg.activeModelId});
  if(u.pathname==="/api/models"&&req.method==="POST"){const b=await body(req);if(!b.name||!b.baseUrl||!b.model)throw Error("Informe nome, endpoint e identificador do modelo.");const item={id:b.id||randomBytes(8).toString("hex"),name:b.name,baseUrl:b.baseUrl,model:b.model,apiKey:b.apiKey||"",kind:b.kind||"remote"};cfg.models=[...cfg.models.filter(x=>x.id!==item.id),item];if(b.activate!==false)cfg.activeModelId=item.id;await save();return send(res,200,{ok:true,models:cfg.models.map(x=>({...x,apiKey:x.apiKey?"••••••••":""})),activeModelId:cfg.activeModelId})}
  if(u.pathname.startsWith("/api/models/")&&req.method==="DELETE"){const id=decodeURIComponent(u.pathname.split("/").pop());cfg.models=cfg.models.filter(x=>x.id!==id);if(cfg.activeModelId===id)cfg.activeModelId=cfg.models[0]?.id||"";await save();return send(res,200,{ok:true})}
