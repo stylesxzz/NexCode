@@ -127,7 +127,7 @@ https://integrate.api.nvidia.com/v1
 Identificador do modelo original:
 
 ~~~text
-deepseek-ai/deepseek-v4-flash
+deepseek-ai/deepseek-v4.1-flash
 ~~~
 
 **Atenção à disponibilidade:** a página da NVIDIA marca o endpoint gratuito de `deepseek-ai/deepseek-v4-flash` como depreciado e mostra disponibilidade por parceiros. A NVIDIA também lista `deepseek-ai/deepseek-v4.1-flash` como modelo mais recente com endpoint gratuito disponível. Confirme na página do modelo qual endpoint está habilitado para a sua conta antes de configurar.
@@ -174,7 +174,7 @@ A compatibilidade varia por modelo: respostas em formato Chat Completions e cham
 - Execução de comandos no workspace configurado, com timeout e limite de saída.
 - Memória persistente local e visualização em grafo.
 - Instalação e remoção de arquivos `SKILL.md` por URL HTTPS.
-- Conexão com servidores MCP remotos via HTTP(S), com descoberta de ferramentas e OAuth quando o servidor publica metadados e permite registro dinâmico de cliente.\n- Saída ao vivo de comandos e logs do agente no painel Terminal do chat.\n- Perfis de modelos locais OpenAI-compatible (Ollama, LM Studio, llama.cpp e similares), com seleção do modelo ativo.
+- Conexão com servidores MCP remotos via HTTP(S), com descoberta de ferramentas e OAuth quando o servidor publica metadados e permite registro dinâmico de cliente.\n- Respostas do provedor em streaming, com texto aparecendo progressivamente e limite de 90 segundos para evitar espera infinita.\n- Chat ocupa a tela após a primeira mensagem; a tela de boas-vindas desaparece durante a conversa.\n- Anexos de até seis imagens de referência, armazenadas em `.nexo/references/` no workspace e enviadas ao modelo (requer modelo com visão).\n- Geração direta de arquivos PDF, DOCX e ZIP por ferramentas do agente, sem exigir dependências externas.\n- Saída ao vivo de comandos e logs do agente no painel Terminal do chat.\n- Perfis de modelos locais OpenAI-compatible (Ollama, LM Studio, llama.cpp e similares), com seleção do modelo ativo.
 - Configurações locais em `~/.nexcode/config.json`.
 
 ## Comandos de desenvolvimento
@@ -201,11 +201,11 @@ Faça backup dessa pasta se quiser preservar configurações e memória ao troca
 
 O agente executa comandos com os privilégios do usuário que iniciou o processo. A opção de autonomia deve ser habilitada apenas para workspaces confiáveis. Os bloqueios existentes são proteções básicas, não um sandbox de segurança. Revise o workspace, mantenha backups e não exponha a porta local publicamente. O servidor foi projetado para escutar em loopback (`127.0.0.1`).
 
-## Estado de implementação e limitações
+## Arquivos gerados e referências visuais\n\nO agente pode criar arquivos `.pdf`, `.docx` e `.zip` diretamente na pasta do workspace. Os documentos gerados são arquivos reais, não apenas blocos de texto na conversa. As imagens anexadas no chat são copiadas para `.nexo/references/` dentro do workspace para que possam ser reutilizadas no projeto. A análise visual depende de um modelo multimodal com suporte a imagens.\n\n## Estado de implementação e limitações
 
 Esta é uma reconstrução limpa e funcional em evolução. Para transparência:
 
-- A execução de terminal, leitura, escrita e listagem de arquivos estão disponíveis no agente local.
+- A execução de terminal, leitura, escrita e listagem de arquivos estão disponíveis no agente local.\n- O streaming de resposta depende de o provedor implementar Server-Sent Events no endpoint Chat Completions; respostas JSON convencionais continuam aceitas, mas não aparecem token a token.\n- A geração de PDF usa fontes padrão e layout simples; DOCX contém texto editável básico. Não substitui ferramentas avançadas de editoração.
 - Skills podem ser instaladas e removidas, mas ainda precisam ser carregadas automaticamente no contexto do modelo para orientar todas as tarefas.
 - A tela MCP permite cadastrar e remover configurações; inicialização dos processos MCP e execução das ferramentas MCP ainda precisam ser concluídas.
 - A memória persiste notas e as apresenta em grafo; embeddings, recuperação semântica e gerenciamento individual de nós ainda precisam ser concluídos.
