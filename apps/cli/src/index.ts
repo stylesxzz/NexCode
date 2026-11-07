@@ -37,7 +37,7 @@ const header = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const modeLine = new TextRenderable(renderer, {
-  content: "MODE  [F1] development   [F2] planning   [F3] ask",
+  content: "MODE  [F1] development   [F2] planning   [F3] ask   [F4] knowledge",
   fg: "#B8C8BE",
 });
 const transcript = new TextRenderable(renderer, {
@@ -62,7 +62,7 @@ shell.add(footer);
 renderer.root.add(shell);
 
 function refresh() {
-  modeLine.content = `MODE  [F1] development   [F2] planning   [F3] ask     CURRENT: ${mode.toUpperCase()}`;
+  modeLine.content = `MODE  [F1] development   [F2] planning   [F3] ask   [F4] knowledge     CURRENT: ${mode.toUpperCase()}`;
   inputLine.content = `> ${draft}${busy ? "  [working…]" : ""}`;
 }
 
@@ -82,17 +82,17 @@ async function submit() {
       if (action === "add" && argument) {
         transcript.content = "KNOWLEDGE LIBRARY  ·  Extracting and indexing PDF locally…";
         const book = await importKnowledgePdf(resolve(argument));
-        transcript.content = `BOOK IMPORTED  ·  ${book.title}\\n\\nPages: ${book.pages}  ·  Indexed passages: ${book.chunks.length}\\nSource: ${book.sourceName}\\n\\nThe agent will retrieve relevant excerpts automatically in future prompts.`;
+        transcript.content = `BOOK IMPORTED  ·  ${book.title}\n\nPages: ${book.pages}  ·  Indexed passages: ${book.chunks.length}\nSource: ${book.sourceName}\n\nThe agent will retrieve relevant excerpts automatically in future prompts.`;
       } else if (action === "list") {
         const books = await listKnowledgeBooks();
         transcript.content = books.length
-          ? "KNOWLEDGE LIBRARY\\n\\n" + books.map((book) => `${book.title}  ·  ${book.pages} pages  ·  ${book.chunks.length} passages\\nID: ${book.id}`).join("\\n\\n")
-          : "KNOWLEDGE LIBRARY\\n\\nNo PDFs imported yet. Use /book add /path/to/book.pdf";
+          ? "KNOWLEDGE LIBRARY\n\n" + books.map((book) => `${book.title}  ·  ${book.pages} pages  ·  ${book.chunks.length} passages\nID: ${book.id}`).join("\n\n")
+          : "KNOWLEDGE LIBRARY\n\nNo PDFs imported yet. Use /book add /path/to/book.pdf";
       } else if (action === "remove" && argument) {
         const removed = await removeKnowledgeBook(argument);
         transcript.content = removed ? "Book removed from the local knowledge library." : "Book not found. Use /book list to see available IDs and titles.";
       } else {
-        transcript.content = "KNOWLEDGE LIBRARY COMMANDS\\n\\n/book add /path/to/book.pdf\\n/book list\\n/book remove <book-id-or-title>\\n\\nPDF text extraction requires Poppler (pdftotext) installed and available on PATH.";
+        transcript.content = "KNOWLEDGE LIBRARY COMMANDS\n\n/book add /path/to/book.pdf\n/book list\n/book remove <book-id-or-title>\n\nPDF text extraction requires Poppler (pdftotext) installed and available on PATH.";
       }
       return;
     }
