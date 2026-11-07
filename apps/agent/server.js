@@ -224,7 +224,7 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  if(u.pathname==="/api/config"&&req.method==="POST"){const b=await body(req);for(const k of["baseUrl","model","autonomy","provider"])if(k in b)cfg[k]=b[k];if(b.apiKey&&b.apiKey!=="••••••••")cfg.apiKey=b.apiKey;await save();return send(res,200,{ok:true})}
 
  if(u.pathname==="/api/local/models"&&req.method==="GET"){
-  const files=[];for(const name of await readdir(MODEL_DIR)){if(!name.toLowerCase().endsWith(".gguf"))continue;try{const info=await stat(join(MODEL_DIR,name));if(info.isFile())files.push({name,size:info.size,active:cfg.models.some(x=>x.fileName===name&&x.id===cfg.activeModelId),running:localRuntimes.has(name)})}catch{}}
+  const files=[];for(const name of await readdir(MODEL_DIR)){if(!name.toLowerCase().endsWith(".gguf"))continue;try{const info=await stat(join(MODEL_DIR,name));if(info.isFile())files.push({name,size:info.size,active:localRuntimes.has(name)&&cfg.models.some(x=>x.fileName===name&&x.id===cfg.activeModelId),running:localRuntimes.has(name)})}catch{}}
   return send(res,200,{directory:MODEL_DIR,files:files.sort((a,b)=>a.name.localeCompare(b.name))});
  }
  if(u.pathname==="/api/local/models/upload"&&req.method==="POST"){
@@ -273,4 +273,5 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  if(u.pathname.startsWith("/api/mcp/")&&req.method==="DELETE"){const name=decodeURIComponent(u.pathname.split("/").pop());mcpLive.delete(name);cfg.mcp=cfg.mcp.filter(x=>x.name!==name);await save();return send(res,200,{ok:true})}
  let p=resolve(WEB,u.pathname==="/"?"index.html":decodeURIComponent(u.pathname.slice(1)));if(!inside(WEB,p))return send(res,404,{error:"Not found"});let file;try{file=await readFile(p)}catch(e){if(e.code==="ENOENT")return send(res,404,{error:"Not found"});throw e}res.writeHead(200,{"content-type":({".html":"text/html; charset=utf-8",".css":"text/css",".js":"text/javascript"})[extname(p)]||"application/octet-stream","x-content-type-options":"nosniff"});res.end(file)
  }catch(e){if(res.headersSent){res.destroy(e);return}send(res,500,{error:e.message})}});
+server.requestTimeout=0;server.timeout=0;
 server.listen(PORT,"127.0.0.1",()=>console.log("\nNEXO LOCAL AGENT\nWorkspace: "+WORK+"\nOpen: http://127.0.0.1:"+PORT+"\nPairing code: "+code+"\nKeep this terminal open. Ctrl+C to stop.\n"));
