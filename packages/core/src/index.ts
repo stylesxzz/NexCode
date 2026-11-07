@@ -31,3 +31,13 @@ export function systemPromptFor(mode: WorkMode): string {
     "Never claim that a command ran, a file changed, or a test passed unless a tool actually confirmed it.",
   ].join("\n\n");
 }
+
+export {
+  formatKnowledgeContext,
+  importKnowledgePdf,
+  listKnowledgeBooks,
+  rankKnowledgeChunks,
+  removeKnowledgeBook,
+  retrieveKnowledge,
+} from "./knowledge.js";
+export type { KnowledgeBook, KnowledgeChunk } from "./knowledge.js";
