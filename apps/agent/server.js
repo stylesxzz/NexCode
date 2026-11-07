@@ -20,7 +20,7 @@ const save=()=>writeFile(cf,JSON.stringify(cfg,null,2),{mode:0o600}),saveMem=()=
 const inside=(base,p)=>{const r=relative(base,p);return r===""||(!r.startsWith("..")&&!isAbsolute(r))};
 const eq=(a,b)=>{const x=Buffer.from(a||""),y=Buffer.from(b||"");return x.length===y.length&&timingSafeEqual(x,y)};
 const send=(res,s,o)=>{res.writeHead(s,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify(o))};
-const body=async req=>{let s="";for await(const c of req){s+=c;if(s.length>24*1024*1024)throw Error("Requisição muito grande (limite de 24 MB).")}return s?JSON.parse(s):{}};
+const body=async req=>{let s="";for await(const c of req){s+=c;if(s.length>64*1024*1024)throw Error("Requisição muito grande (limite de 64 MB).")}return s?JSON.parse(s):{}};
 const sse=(res,type,data)=>res.write("event: "+type+"\ndata: "+JSON.stringify(data)+"\n\n");
 function activeModel(){const m=cfg.models.find(x=>x.id===cfg.activeModelId);return m||{baseUrl:cfg.baseUrl,model:cfg.model,apiKey:cfg.apiKey,provider:cfg.provider||"openai-compatible"}}
 async function jsonFetch(url,options={}){const r=await fetch(url,options);const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{}}catch{data={raw}}if(!r.ok)throw Error(data.error_description||data.error?.message||data.message||raw||("HTTP "+r.status));return data}
