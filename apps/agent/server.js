@@ -37,21 +37,50 @@ async function oauthStart(server){
  const auth=new URL(metadata.authorization_endpoint);auth.searchParams.set("response_type","code");auth.searchParams.set("client_id",client.client_id);auth.searchParams.set("redirect_uri","http://127.0.0.1:"+PORT+"/oauth/callback");auth.searchParams.set("code_challenge",challenge);auth.searchParams.set("code_challenge_method","S256");auth.searchParams.set("state",state);if(resource.resource)auth.searchParams.set("resource",resource.resource);
  return {status:"authorization_required",authorizationUrl:auth.toString(),message:"Abra a aba de autorização e conclua o login para conectar o MCP."};
 }
+function parseMcpSse(raw){
+ const messages=[];
+ for(const block of raw.split(/\r?\n\r?\n/)){
+  const data=block.split(/\r?\n/).filter(line=>line.startsWith("data:")).map(line=>line.slice(5).replace(/^ /,"")).join("\n");
+  if(data)try{messages.push(JSON.parse(data))}catch{}
+ }
+ return messages;
+}
 async function rpc(server,method,params={}){
+ const notification=method.startsWith("notifications/");
+ const id=notification?undefined:randomBytes(8).toString("hex");
+ const payload={jsonrpc:"2.0",...(id?{id}:{}),method,...(params&&Object.keys(params).length?{params}:{})};
  const headers={"content-type":"application/json","accept":"application/json, text/event-stream"};
  if(server.accessToken)headers.authorization="Bearer "+server.accessToken;
  if(server.sessionId)headers["mcp-session-id"]=server.sessionId;
- const response=await fetch(server.url,{method:"POST",headers,body:JSON.stringify({jsonrpc:"2.0",id:randomBytes(8).toString("hex"),method,params})});
+ if(server.protocolVersion)headers["MCP-Protocol-Version"]=server.protocolVersion;
+ const response=await fetch(server.url,{method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)});
  if(response.status===401)throw Object.assign(Error("Autorização MCP necessária."),{oauth:true});
- if(!response.ok)throw Error("MCP HTTP "+response.status+": "+(await response.text()).slice(0,1000));
+ if(response.status===404&&server.sessionId)throw Error("Sessão MCP não encontrada (HTTP 404). Desconecte e conecte o servidor novamente.");
+ if(!response.ok)throw Error("MCP HTTP "+response.status+": "+(await response.text()).slice(0,1500));
  const sid=response.headers.get("mcp-session-id");if(sid)server.sessionId=sid;
- const raw=await response.text();let result;
- if(response.headers.get("content-type")?.includes("text/event-stream")){const line=raw.split("\n").find(x=>x.startsWith("data:"));result=line?JSON.parse(line.slice(5).trim()):{}}
- else result=raw?JSON.parse(raw):{};
- if(result.error)throw Error(result.error.message||"MCP JSON-RPC error");
- return result.result||result;
+ if(notification&&(response.status===202||response.status===204))return{};
+ const raw=await response.text();
+ if(notification&&!raw.trim())return{};
+ let messages=[];
+ if(response.headers.get("content-type")?.includes("text/event-stream"))messages=parseMcpSse(raw);
+ else if(raw.trim()){try{messages=[JSON.parse(raw)]}catch{throw Error("Resposta MCP não é JSON nem Server-Sent Events válido: "+raw.slice(0,500))}}
+ if(notification)return{};
+ const result=messages.find(message=>message?.id===id);
+ if(!result)throw Error("O servidor MCP não devolveu uma resposta JSON-RPC para "+method+". Verifique se a URL aponta para o endpoint Streamable HTTP.");
+ if(result.error)throw Error("MCP JSON-RPC "+(result.error.code??"error")+": "+(result.error.message||"Falha na chamada")+(result.error.data?" — "+JSON.stringify(result.error.data):""));
+ return result.result??{};
 }
-async function connectMcp(server){await rpc(server,"initialize",{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"nexo",version:"1.1.0"}});await rpc(server,"notifications/initialized");const listed=await rpc(server,"tools/list");server.tools=listed.tools||[];mcpLive.set(server.name,server);return server.tools}
+async function connectMcp(server){
+ server.sessionId="";
+ server.protocolVersion="";
+ const initialized=await rpc(server,"initialize",{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"nexcode",version:"1.2.0"}});
+ server.protocolVersion=initialized.protocolVersion||"2025-03-26";
+ await rpc(server,"notifications/initialized");
+ const listed=await rpc(server,"tools/list");
+ server.tools=listed.tools||[];
+ mcpLive.set(server.name,server);
+ return server.tools;
+}
 const builtin=[
  {type:"function",function:{name:"terminal",description:"Execute um comando no workspace. Use para criar, instalar, testar e analisar projetos. A execução é exibida ao usuário em tempo real.",parameters:{type:"object",properties:{command:{type:"string"},reason:{type:"string"}},required:["command","reason"]}}},
  {type:"function",function:{name:"read_file",description:"Read workspace file",parameters:{type:"object",properties:{path:{type:"string"}},required:["path"]}}},
