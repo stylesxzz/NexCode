@@ -1,199 +1,192 @@
-# NEXCODE
+# Nexo — Local AI Workspace
 
-Agente de programação open source, local e independente de provedor. O NEXCODE combina uma TUI OpenTUI, ferramentas de workspace, aprovações explícitas, adaptadores de IA e integração MCP por stdio.
+<p align="center">
+  <strong>Um ambiente de IA local conectado ao workspace e ao terminal da sua máquina.</strong><br>
+  Interface web local • Agente Node.js • Ferramentas de projeto • Memória persistente
+</p>
 
-## Recursos implementados
+A interface usa como referência visual o conceito enviado: fundo escuro, brilho verde-lima, orb central e navegação lateral. O navegador é apenas a interface; quem acessa arquivos e executa comandos é o agente local iniciado no terminal.
 
-- TUI de terminal escura com detalhes verdes.
-- Modos **Development**, **Planning** e **Ask**.
-- Provedores: NVIDIA NIM, OpenAI, Anthropic, Google Gemini, Ollama e endpoints OpenAI-compatible.
-- Ferramentas do workspace: listar arquivos, ler arquivos e pesquisar texto.
-- No modo Development: criar/substituir arquivos e executar programas com aprovação explícita.
-- Comandos executados diretamente, sem shell, com diretório de trabalho limitado ao repositório, ambiente reduzido, limite de tempo e saída limitada.
-- MCP stdio: inicialização do servidor e cada chamada de ferramenta exigem aprovação.
-- Bloqueio de leitura de arquivos `.env`, `.git` e `node_modules`; bloqueio de caminhos fora do workspace e escritas por symlink.
-- Registro local das decisões de aprovação em `.nexcode/audit.jsonl`.
-- PNPM workspace, Turbo, TypeScript, Vitest e CI com lockfile congelado.
+## Referências visuais
 
-## Modos
+### Chat e workspace
+![Referência da interface principal do Nexo](docs/images/nexo-chat.svg)
 
-| Tecla | Modo | Permissões |
-|---|---|---|
-| F1 | `development` | Leitura, pesquisa, escrita e comandos; escrita/comando sempre pedem aprovação |
-| F2 | `planning` | Apenas leitura e pesquisa; sem comandos, MCP ou escrita |
-| F3 | `ask` | Conversa sem ferramentas do workspace |
+### Memória em grafo
+![Referência da árvore de memória do Nexo](docs/images/nexo-memory.svg)
 
-Quando uma ação exigir aprovação, a TUI mostra o resumo, os argumentos e o contexto. Pressione **Y** para aprovar ou **N** para negar. Negar não executa a ação.
+As imagens são mockups SVG de documentação baseados nos componentes e estilos atuais do projeto; não são capturas de uma sessão real.
 
 ## Requisitos
 
-- Git
-- Node.js **22.12+**
-- pnpm **10.20.0**
-- Bun **1.3.14+** (runtime da OpenTUI)
+- Node.js 20.11 ou superior (Node 22 LTS recomendado).
+- npm.
+- Um provedor de IA com API compatível com o formato Chat Completions usado pelo agente.
 
-O OpenTUI usa FFI nativo. O runtime Bun é o caminho suportado pelo projeto; Node.js precisa de versão 26.4+ e `--experimental-ffi`.
+## Instalação — Kali Linux, Linux, macOS e Termux
 
-Confira:
+Clone e instale uma única vez:
 
-```bash
-node --version
-pnpm --version
-bun --version
-git --version
-```
-
-## Instalação
-
-### Linux
-
-Instale Git, Node.js 22.12+ e habilite PNPM:
-
-```bash
-corepack enable
-corepack prepare pnpm@10.20.0 --activate
-curl -fsSL https://bun.sh/install | bash
-```
-
-Abra um novo terminal, depois:
-
-```bash
+~~~bash
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
-pnpm install --frozen-lockfile
-```
+npm install
+npm link
+~~~
+
+O `npm link` registra o comando global `nexcode`. Se o npm global não estiver no PATH, confira `npm prefix -g` e adicione o diretório `bin` correspondente ao PATH do seu shell.
 
 ### Windows (PowerShell)
 
-Instale Git e Node.js 22.12+. Depois:
-
-```powershell
-corepack enable
-corepack prepare pnpm@10.20.0 --activate
-powershell -c "irm bun.sh/install.ps1 | iex"
+~~~powershell
 git clone https://github.com/stylesxzz/NexCode.git
 cd NexCode
-pnpm install --frozen-lockfile
-```
+npm install
+npm link
+~~~
 
-### macOS
+## Iniciar e reiniciar
 
-Instale Git, Node.js e Bun. Ative PNPM com Corepack e siga os mesmos comandos de clone e instalação da seção Linux.
+Inicie o Nexo a partir da pasta que deseja disponibilizar ao agente:
 
-### Termux / Android
+~~~bash
+nexcode
+~~~
 
-A compatibilidade do runtime nativo Bun + OpenTUI no Termux/Android não está garantida. Use uma distribuição Linux suportada ou computador para executar a TUI.
+Ou informe explicitamente o workspace:
 
-## Configuração da IA
+~~~bash
+nexcode /caminho/para/meu-projeto
+~~~
 
-Copie o modelo de configuração:
+Também é possível definir o workspace por variável de ambiente:
 
-```bash
-cp .env.example .env
-```
+~~~bash
+NEXCODE_WORKSPACE=/caminho/para/meu-projeto nexcode
+~~~
 
-Exemplo NVIDIA NIM:
+Windows PowerShell:
 
-```env
-NEXCODE_PROVIDER=nvidia
-NEXCODE_BASE_URL=https://integrate.api.nvidia.com/v1
-NEXCODE_API_KEY=sua_chave_nvidia
-NEXCODE_MODEL=meta/llama-3.3-70b-instruct
-```
+~~~powershell
+$env:NEXCODE_WORKSPACE = "C:\Users\SeuUsuario\Projeto"
+nexcode
+~~~
 
-Outros provedores:
+Ao iniciar, o terminal exibe o endereço local e um código de pareamento. Abra **http://127.0.0.1:4173**, digite o código e conecte. Mantenha o terminal aberto enquanto estiver usando o Nexo. Para encerrar, pressione `Ctrl+C`; para reiniciar, execute `nexcode` novamente.
 
-- OpenAI: `NEXCODE_PROVIDER=openai`, `OPENAI_API_KEY` e nome do modelo em `NEXCODE_MODEL`.
-- Anthropic: `NEXCODE_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` e modelo em `NEXCODE_MODEL`.
-- Gemini: `NEXCODE_PROVIDER=google`, `GOOGLE_API_KEY` e modelo em `NEXCODE_MODEL`.
-- Ollama: `NEXCODE_PROVIDER=ollama`, `NEXCODE_BASE_URL=http://localhost:11434/v1` e modelo local em `NEXCODE_MODEL`.
-- Outro endpoint compatível: `NEXCODE_PROVIDER=openai-compatible`, `NEXCODE_API_KEY`, `NEXCODE_BASE_URL` e `NEXCODE_MODEL`.
+### Porta alternativa
 
-Não compartilhe nem envie seu `.env` ao GitHub. O NEXCODE não precisa de uma chave de API para instalar, mas precisa de uma chave válida ou servidor Ollama para responder com IA.
+Se a porta padrão estiver ocupada:
 
-## Servidores MCP (opcional)
+~~~bash
+NEXCODE_PORT=4180 nexcode
+~~~
 
-O NEXCODE aceita servidores MCP locais por stdio. Crie sua configuração privada:
+Depois abra `http://127.0.0.1:4180`.
 
-```bash
-mkdir -p .nexcode
-cp .nexcode/mcp.example.json .nexcode/mcp.json
-```
+## Configurar um provedor de IA
 
-Edite `.nexcode/mcp.json` e substitua o servidor de exemplo pelo pacote MCP que deseja usar. Exemplo de formato:
+Na interface, abra **Configurações** e informe provedor, URL base, identificador do modelo e chave. A chave é armazenada localmente em `~/.nexcode/config.json` (permissão restrita pelo agente).
 
-```json
-{
-  "servers": [
-    {
-      "name": "filesystem",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
-      "env": {}
-    }
-  ]
-}
-```
+### NVIDIA NIM — DeepSeek V4 Flash
 
-Na primeira utilização, o NEXCODE pede aprovação antes de iniciar cada servidor. Cada chamada de ferramenta MCP também pede aprovação individual. O servidor roda com variáveis de ambiente básicas e somente as variáveis extras declaradas explicitamente na configuração.
+Endpoint base:
 
-## Executar
+~~~text
+https://integrate.api.nvidia.com/v1
+~~~
 
-Na raiz do repositório:
+Identificador do modelo original:
 
-```bash
-pnpm dev:cli
-```
+~~~text
+deepseek-ai/deepseek-v4-flash
+~~~
 
-Para build de produção:
+**Atenção à disponibilidade:** a página da NVIDIA marca o endpoint gratuito de `deepseek-ai/deepseek-v4-flash` como depreciado e mostra disponibilidade por parceiros. A NVIDIA também lista `deepseek-ai/deepseek-v4.1-flash` como modelo mais recente com endpoint gratuito disponível. Confirme na página do modelo qual endpoint está habilitado para a sua conta antes de configurar.
 
-```bash
-pnpm build
-pnpm start:cli
-```
+- [DeepSeek V4 Flash — NVIDIA](https://build.nvidia.com/deepseek-ai/deepseek-v4-flash)
+- [DeepSeek V4.1 Flash — NVIDIA](https://build.nvidia.com/deepseek-ai/deepseek-v4.1-flash)
+- [Catálogo NVIDIA NIM](https://build.nvidia.com/)
 
-Atalhos:
+Para testar a chave fora do Nexo, no Kali/Linux/macOS:
 
-- `F1`: Development
-- `F2`: Planning
-- `F3`: Ask
-- `Enter`: enviar mensagem
-- `Backspace`: apagar caractere
-- `Y` / `N`: aprovar / negar uma ação pendente
-- `Ctrl+C`: sair
+~~~bash
+read -s -p "NVIDIA API Key: " NVIDIA_API_KEY
+echo
+curl https://integrate.api.nvidia.com/v1/chat/completions \
+  -H "Authorization: Bearer $NVIDIA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-ai/deepseek-v4-flash",
+    "messages": [{"role":"user","content":"Responda: Nexo conectado."}],
+    "max_tokens": 100,
+    "stream": false
+  }'
+unset NVIDIA_API_KEY
+~~~
 
-## Validação
+Se o endpoint gratuito não estiver disponível para V4 Flash, selecione o modelo que aparece habilitado no catálogo e use o identificador exatamente como fornecido pela NVIDIA. Não coloque a chave diretamente no histórico do shell ou em arquivos versionados.
 
-```bash
-pnpm typecheck
-pnpm test
-pnpm build
-```
+### Outros endpoints OpenAI-compatible
 
-O GitHub Actions repete instalação congelada, descoberta do workspace, typecheck, testes e build em cada push para `main` e pull request.
+| Provedor | URL base |
+|---|---|
+| OpenAI | `https://api.openai.com/v1` |
+| NVIDIA NIM | `https://integrate.api.nvidia.com/v1` |
+| OpenRouter | `https://openrouter.ai/api/v1` |
+| Ollama local | `http://localhost:11434/v1` |
 
-## Segurança e limites
+A compatibilidade varia por modelo: respostas em formato Chat Completions e chamadas de ferramentas (tool calling) precisam ser suportadas para os fluxos de agente.
 
-- O modelo não recebe acesso direto ao shell: ele solicita uma ferramenta e a aplicação mostra a aprovação antes da execução.
-- Os comandos são iniciados sem shell e com argumentos separados. Revise o comando antes de aprovar; um programa aprovado ainda pode realizar ações relevantes no sistema.
-- Escritas ficam limitadas ao workspace e são bloqueadas em arquivos de ambiente secretos, `.git`, `node_modules` e caminhos simbólicos.
-- MCP é poderoso: instale apenas servidores confiáveis e revise os argumentos de cada chamada.
-- O log de aprovação fica em `.nexcode/audit.jsonl`, localmente, e não é enviado ao Git.
-- A aprovação não substitui backup. Faça commit ou backup antes de tarefas que alterem muitos arquivos.
-- A qualidade das chamadas de ferramentas depende de o modelo escolhido suportar tool calling.
+## Recursos disponíveis nesta versão
 
-## Estrutura
+- Interface web local responsiva: Chat, Memória, Skills, Integrações MCP e Configurações.
+- Pareamento por código entre navegador e agente local.
+- Agente com ferramentas de terminal, leitura, escrita e listagem de arquivos.
+- Execução de comandos no workspace configurado, com timeout e limite de saída.
+- Memória persistente local e visualização em grafo.
+- Instalação e remoção de arquivos `SKILL.md` por URL HTTPS.
+- Cadastro e remoção de configurações de servidores MCP STDIO.
+- Configurações locais em `~/.nexcode/config.json`.
 
-```text
-apps/
-  cli/             # TUI OpenTUI
-packages/
-  core/            # Modos e prompts
-  providers/       # Modelos, ferramentas e aprovações
-  mcp/             # Cliente MCP stdio
-tests/             # Testes de segurança do workspace
-```
+## Comandos de desenvolvimento
 
-## Licença
+~~~bash
+npm start       # inicia o agente sem o launcher global
+npm run dev     # reinicia o agente ao detectar alterações
+npm test        # executa os testes automatizados
+npm run check   # verifica a sintaxe dos arquivos JS
+~~~
 
-MIT. Consulte [LICENSE](LICENSE).
+## Dados locais
+
+| Conteúdo | Caminho |
+|---|---|
+| Configuração e chave de API | `~/.nexcode/config.json` |
+| Memória | `~/.nexcode/memory.json` |
+| Skills instaladas | `~/.nexcode/skills/` |
+
+Faça backup dessa pasta se quiser preservar configurações e memória ao trocar de máquina. Nunca envie chaves de API para o Git.
+
+## Segurança
+
+O agente executa comandos com os privilégios do usuário que iniciou o processo. A opção de autonomia deve ser habilitada apenas para workspaces confiáveis. Os bloqueios existentes são proteções básicas, não um sandbox de segurança. Revise o workspace, mantenha backups e não exponha a porta local publicamente. O servidor foi projetado para escutar em loopback (`127.0.0.1`).
+
+## Estado de implementação e limitações
+
+Esta é uma reconstrução limpa e funcional em evolução. Para transparência:
+
+- A execução de terminal, leitura, escrita e listagem de arquivos estão disponíveis no agente local.
+- Skills podem ser instaladas e removidas, mas ainda precisam ser carregadas automaticamente no contexto do modelo para orientar todas as tarefas.
+- A tela MCP permite cadastrar e remover configurações; inicialização dos processos MCP e execução das ferramentas MCP ainda precisam ser concluídas.
+- A memória persiste notas e as apresenta em grafo; embeddings, recuperação semântica e gerenciamento individual de nós ainda precisam ser concluídos.
+- Integração nativa Anthropic Messages, OAuth, SCP com verificação por e-mail/OTP, streaming e PTY interativo ainda não estão implementados.
+
+## Contribuição
+
+Issues e pull requests são bem-vindos. Antes de enviar alterações, execute:
+
+~~~bash
+npm test
+npm run check
+~~~
