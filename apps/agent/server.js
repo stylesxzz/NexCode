@@ -22,7 +22,6 @@ const send=(res,s,o)=>{res.writeHead(s,{"content-type":"application/json","cache
 const body=async req=>{let s="";for await(const c of req)s+=c;if(s.length>2e6)throw Error("Request muito grande");return s?JSON.parse(s):{}};
 const sse=(res,type,data)=>res.write("event: "+type+"\ndata: "+JSON.stringify(data)+"\n\n");
 function activeModel(){const m=cfg.models.find(x=>x.id===cfg.activeModelId);return m||{baseUrl:cfg.baseUrl,model:cfg.model,apiKey:cfg.apiKey,provider:cfg.provider||"openai-compatible"}}
-function openBrowser(url){const command=process.platform==="win32"?"cmd":process.platform==="darwin"?"open":"xdg-open";const args=process.platform==="win32"?["/c","start","",url]:[url];const p=spawn(command,args,{detached:true,stdio:"ignore"});p.unref()}
 async function jsonFetch(url,options={}){const r=await fetch(url,options);const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{}}catch{data={raw}}if(!r.ok)throw Error(data.error_description||data.error?.message||data.message||raw||("HTTP "+r.status));return data}
 async function oauthStart(server){
  const endpoint=new URL(server.url),resourceMeta=[endpoint.origin+"/.well-known/oauth-protected-resource"+endpoint.pathname,endpoint.origin+"/.well-known/oauth-protected-resource"].filter((v,i,a)=>a.indexOf(v)===i);
@@ -35,8 +34,7 @@ async function oauthStart(server){
  const verifier=randomBytes(32).toString("base64url"),challenge=createHash("sha256").update(verifier).digest("base64url"),state=randomBytes(24).toString("hex");
  oauthPending.set(state,{name:server.name,verifier,metadata,client,created:Date.now()});
  const auth=new URL(metadata.authorization_endpoint);auth.searchParams.set("response_type","code");auth.searchParams.set("client_id",client.client_id);auth.searchParams.set("redirect_uri","http://127.0.0.1:"+PORT+"/oauth/callback");auth.searchParams.set("code_challenge",challenge);auth.searchParams.set("code_challenge_method","S256");auth.searchParams.set("state",state);if(resource.resource)auth.searchParams.set("resource",resource.resource);
- openBrowser(auth.toString());
- return {status:"authorization_required",authorizationUrl:auth.toString(),message:"A autorização foi aberta no navegador. Conclua o login para conectar o MCP."};
+ return {status:"authorization_required",authorizationUrl:auth.toString(),message:"Abra a aba de autorização e conclua o login para conectar o MCP."};
 }
 async function rpc(server,method,params={}){
  const headers={"content-type":"application/json","accept":"application/json, text/event-stream"};
