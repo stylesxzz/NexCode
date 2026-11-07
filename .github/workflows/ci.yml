@@ -1,7 +1,7 @@
 name: Nexo CI
 on:
   push:
-    branches: [main, rebuild/nexo-from-scratch]
+    branches: [main, rebuild/nexo-from-scratch, feature/live-agent-mcp-local-models]
   pull_request:
     branches: [main]
 jobs:
