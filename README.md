@@ -1,3 +1,5 @@
+> **Current CLI setup:** this repository's active TypeScript monorepo and OpenTUI CLI require Node.js 26.4+, pnpm 10.20.0 and Bun 1.3.14+. Follow the current [Quick Start guide](docs/QUICKSTART.md) for installation and the Development-mode GitHub import/self-evolution workflow. Older setup notes below may describe the previous web edition.
+
 # Nexo — Local AI Workspace
 
 <p align="center">
