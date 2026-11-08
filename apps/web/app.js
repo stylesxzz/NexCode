@@ -1,7 +1,7 @@
 let token=sessionStorage.getItem("nexcode-token")||"",history=[],busy=false,pendingImages=[];const $=x=>document.getElementById(x);async function api(p,m="GET",d){let r=await fetch("/api"+p,{method:m,headers:{"content-type":"application/json",authorization:"Bearer "+token},body:d?JSON.stringify(d):undefined}),j=await r.json();if(!r.ok)throw Error(j.error||"HTTP "+r.status);return j}
 $("connect").onclick=async()=>{try{let r=await fetch("/api/pair",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:$("code").value})}),j=await r.json();if(!r.ok)throw Error(j.error);token=j.token;sessionStorage.setItem("nexcode-token",token);boot()}catch(e){$("err").textContent=e.message}};
-async function boot(){try{let s=await api("/status");$("pair").classList.add("hide");$("app").classList.remove("hide");$("workspace").textContent=s.workspace;$("model").value=s.model;$("auto").checked=s.autonomy;let c=await api("/config");$("base").value=c.baseUrl;$("key").value=c.apiKey;$("provider").value=c.provider||"openai-compatible";await loadModels();await loadMcp()}catch(e){$("pair").classList.remove("hide");$("app").classList.add("hide");console.error(e)}}if(token)boot();
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");document.querySelectorAll(".tab").forEach(x=>x.classList.add("hide"));$(b.dataset.tab).classList.remove("hide");if(b.dataset.tab==="memory")loadMemory();if(b.dataset.tab==="skills")loadSkills();if(b.dataset.tab==="mcp")loadMcp();if(b.dataset.tab==="settings")loadModels()});
+async function boot(){try{let s=await api("/status");$("pair").classList.add("hide");$("app").classList.remove("hide");$("workspace").textContent=s.workspace;$("model").value=s.model;$("auto").checked=s.autonomy;let c=await api("/config");$("base").value=c.baseUrl;$("key").value=c.apiKey;$("provider").value=c.provider||"openai-compatible";await loadModels();await loadMcp();await loadBookmarks()}catch(e){$("pair").classList.remove("hide");$("app").classList.add("hide");console.error(e)}}if(token)boot();
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");document.querySelectorAll(".tab").forEach(x=>x.classList.add("hide"));$(b.dataset.tab).classList.remove("hide");if(b.dataset.tab==="memory")loadMemory();if(b.dataset.tab==="skills")loadSkills();if(b.dataset.tab==="knowledge")loadKnowledge();if(b.dataset.tab==="mcp")loadMcp();if(b.dataset.tab==="settings")loadModels()});
 function msg(role,t){let d=document.createElement("div");d.className="msg "+role;d.textContent=t;$("messages").append(d);$("messages").scrollTop=$("messages").scrollHeight;return d}
 function showImagePreviews(container,files){if(!files.length)return;const wrap=document.createElement("div");wrap.className="message-images";for(const file of files){const img=document.createElement("img");img.alt=file.name;img.src=URL.createObjectURL(file);wrap.append(img)}container.append(wrap)}
 function terminalEvent(data){const panel=$("terminal-output");panel.classList.remove("hide");if(data.kind==="command"){const h=document.createElement("div");h.className="term-command";h.textContent="$ "+data.command+"\n"+data.cwd;panel.append(h)}else if(data.kind==="stdout"||data.kind==="stderr"){const o=document.createElement("pre");o.className=data.kind==="stderr"?"term-stderr":"term-stdout";o.textContent=data.text;panel.append(o)}else if(data.kind==="exit"){const x=document.createElement("div");x.className="term-exit";x.textContent="Processo finalizado — código "+data.code;panel.append(x)}panel.scrollTop=panel.scrollHeight}
@@ -20,5 +20,63 @@ $("add-local-model").onclick=async()=>{try{await api("/models","POST",{name:$("l
 async function loadMemory(){let m=await api("/memory"),g=$("graph");g.innerHTML='<i class="orb" style="position:absolute;left:calc(50% - 37px);top:calc(50% - 37px)"></i>';m.nodes.slice(0,35).forEach((n,i)=>{let a=document.createElement("i");a.className="node";let angle=i*2.399,r=55+i%4*23;a.style.left="calc(50% + "+Math.cos(angle)*r+"px)";a.style.top="calc(50% + "+Math.sin(angle)*r+"px)";a.title=n.label;g.append(a)});$("memlist").innerHTML="";m.nodes.forEach(n=>{let d=document.createElement("div");d.className="card";d.textContent=n.label+" — "+n.detail;$("memlist").append(d)})}
 async function loadSkills(){let a=await api("/skills");$("skilllist").innerHTML="";a.forEach(s=>{let d=document.createElement("div");d.className="card";d.textContent=s.name;let b=document.createElement("button");b.textContent="Remover";b.onclick=async()=>{await api("/skills/"+encodeURIComponent(s.name),"DELETE");loadSkills()};d.append(b);$("skilllist").append(d)})}
 $("install").onclick=async()=>{try{await api("/skills","POST",{url:$("skillurl").value});loadSkills()}catch(e){alert(e.message)}};
-async function loadMcp(){try{const a=await api("/mcp");$("mcplist").innerHTML="";a.forEach(s=>{let d=document.createElement("div");d.className="card model-row";let title=document.createElement("strong");title.textContent=s.name;let detail=document.createElement("small");detail.textContent=s.url+" · "+s.status+" · "+s.tools+" ferramentas";let connect=document.createElement("button");connect.textContent=s.status==="connected"?"Conectado":"Conectar";connect.disabled=s.status==="connected";connect.onclick=async()=>{const authTab=window.open("about:blank","_blank");try{const result=await api("/mcp/"+encodeURIComponent(s.name)+"/connect","POST",{});if(result.authorizationUrl&&authTab)authTab.location=result.authorizationUrl;else if(authTab)authTab.close();$("mcp-status").textContent=result.message||"Conectando…";setTimeout(loadMcp,2500)}catch(e){if(authTab)authTab.close();$("mcp-status").textContent=e.message}};let del=document.createElement("button");del.textContent="Remover";del.onclick=async()=>{await api("/mcp/"+encodeURIComponent(s.name),"DELETE");loadMcp()};d.append(title,detail,connect,del);$("mcplist").append(d)})}catch(e){$("mcp-status").textContent=e.message}}
+async function loadMcp(){try{const a=await api("/mcp");$("mcplist").innerHTML="";a.forEach(s=>{let d=document.createElement("div");d.className="card model-row";let title=document.createElement("strong");title.textContent=s.name;let detail=document.createElement("small");detail.textContent=s.url+" · "+s.status+" · "+s.tools+" ferramentas"+(s.toolNames?.length?" · "+s.toolNames.join(", "):"");let connect=document.createElement("button");connect.textContent=s.status==="connected"?"Conectado":"Conectar";connect.disabled=s.status==="connected";connect.onclick=async()=>{const authTab=window.open("about:blank","_blank");try{const result=await api("/mcp/"+encodeURIComponent(s.name)+"/connect","POST",{});if(result.authorizationUrl&&authTab)authTab.location=result.authorizationUrl;else if(authTab)authTab.close();$("mcp-status").textContent=result.message||"Conectando…";setTimeout(loadMcp,2500)}catch(e){if(authTab)authTab.close();$("mcp-status").textContent=e.message}};let del=document.createElement("button");del.textContent="Remover";del.onclick=async()=>{await api("/mcp/"+encodeURIComponent(s.name),"DELETE");loadMcp()};d.append(title,detail,connect,del);$("mcplist").append(d)})}catch(e){$("mcp-status").textContent=e.message}}
 $("addmcp").onclick=async()=>{const authTab=window.open("about:blank","_blank");try{const result=await api("/mcp","POST",{name:$("mname").value,url:$("murl").value});if(result.authorizationUrl&&authTab)authTab.location=result.authorizationUrl;else if(authTab)authTab.close();$("mcp-status").textContent=result.message||"Servidor registrado.";loadMcp()}catch(e){if(authTab)authTab.close();$("mcp-status").textContent=e.message}};
+
+
+// Persistent website bookmarks: floating icon dock on the right edge.
+async function loadBookmarks(){
+  try{
+    const items=await api("/bookmarks");
+    const host=$("bookmark-items");host.innerHTML="";
+    for(const item of items){
+      const wrap=document.createElement("div");wrap.className="bookmark-item";
+      const open=document.createElement("button");open.type="button";open.className="bookmark-orb";open.title=item.name+" — "+item.url;open.setAttribute("aria-label","Abrir "+item.name);
+      const img=document.createElement("img");img.alt="";img.loading="lazy";img.src="https://www.google.com/s2/favicons?domain_url="+encodeURIComponent(item.url)+"&sz=64";
+      img.onerror=()=>{img.remove();const letter=document.createElement("span");letter.textContent=(item.name||"?").trim().slice(0,1).toUpperCase();open.append(letter)};
+      open.append(img);open.onclick=()=>window.open(item.url,"_blank","noopener,noreferrer");
+      const remove=document.createElement("button");remove.type="button";remove.className="bookmark-remove";remove.textContent="×";remove.title="Remover "+item.name;remove.setAttribute("aria-label","Remover "+item.name);
+      remove.onclick=async e=>{e.stopPropagation();if(!confirm("Remover o favorito "+item.name+"?"))return;try{await api("/bookmarks/"+encodeURIComponent(item.id),"DELETE");loadBookmarks()}catch(err){alert(err.message)}};
+      wrap.append(open,remove);host.append(wrap);
+    }
+  }catch(e){console.error("Bookmarks:",e)}
+}
+$("bookmark-add").onclick=()=>{$("bookmark-modal").classList.remove("hide");$("bookmark-status").textContent="";$("bookmark-name").focus()};
+$("bookmark-close").onclick=()=> $("bookmark-modal").classList.add("hide");
+$("bookmark-modal").addEventListener("click",e=>{if(e.target===$("bookmark-modal"))$("bookmark-modal").classList.add("hide")});
+$("bookmark-form").onsubmit=async e=>{
+  e.preventDefault();const status=$("bookmark-status");status.textContent="Salvando…";
+  try{await api("/bookmarks","POST",{name:$("bookmark-name").value,url:$("bookmark-url").value});$("bookmark-form").reset();$("bookmark-modal").classList.add("hide");await loadBookmarks()}
+  catch(err){status.textContent=err.message}
+};
+
+// PDF library: upload, HTTPS import, persistent retrieval and Skill export.
+async function loadKnowledge(){
+  try{
+    const books=await api("/knowledge"),host=$("knowledge-list");host.innerHTML="";
+    if(!books.length){host.textContent="Nenhum livro importado. Adicione um PDF acima para criar sua memória de conhecimento.";return}
+    for(const book of books){
+      const card=document.createElement("div");card.className="card knowledge-card";
+      const title=document.createElement("strong");title.textContent=book.title;
+      const meta=document.createElement("small");meta.textContent=book.fileName+" · "+book.pages+" páginas · "+book.chunks+" trechos indexados";
+      const skill=document.createElement("button");skill.type="button";skill.textContent="Transformar em Skill";skill.onclick=async()=>{try{const result=await api("/knowledge/"+encodeURIComponent(book.id)+"/skill","POST",{});$("knowledge-status").textContent="Skill criada: "+result.name;loadSkills()}catch(err){$("knowledge-status").textContent=err.message}};
+      const remove=document.createElement("button");remove.type="button";remove.textContent="Excluir";remove.onclick=async()=>{if(!confirm("Excluir "+book.title+" da biblioteca?"))return;try{await api("/knowledge/"+encodeURIComponent(book.id),"DELETE");loadKnowledge()}catch(err){$("knowledge-status").textContent=err.message}};
+      card.append(title,meta,skill,remove);host.append(card);
+    }
+  }catch(e){$("knowledge-status").textContent=e.message}
+}
+function fileAsBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(",")[1]);reader.onerror=()=>reject(Error("Não foi possível ler o PDF."));reader.readAsDataURL(file)})}
+$("knowledge-upload").onclick=async()=>{
+  const file=$("knowledge-file").files[0],status=$("knowledge-status");if(!file){status.textContent="Selecione um arquivo PDF.";return}
+  if(file.size>40*1024*1024){status.textContent="O PDF excede o limite de 40 MB.";return}
+  status.textContent="Enviando e indexando o livro localmente…";$("knowledge-upload").disabled=true;
+  try{const data=await fileAsBase64(file);const result=await api("/knowledge/upload","POST",{fileName:file.name,data});status.textContent="Importado: "+result.title+" · "+result.pages+" páginas · "+result.chunks+" trechos."; $("knowledge-file").value="";await loadKnowledge()}
+  catch(e){status.textContent=e.message}
+  finally{$("knowledge-upload").disabled=false}
+};
+$("knowledge-url-add").onclick=async()=>{
+  const status=$("knowledge-status");status.textContent="Baixando PDF…";$("knowledge-url-add").disabled=true;
+  try{const result=await api("/knowledge/url","POST",{url:$("knowledge-url").value});status.textContent="Importado: "+result.title+" · "+result.pages+" páginas · "+result.chunks+" trechos."; $("knowledge-url").value="";await loadKnowledge()}
+  catch(e){status.textContent=e.message}
+  finally{$("knowledge-url-add").disabled=false}
+};
