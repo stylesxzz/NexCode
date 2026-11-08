@@ -217,3 +217,12 @@ Issues e pull requests são bem-vindos. Antes de enviar alterações, execute:
 npm test
 npm run check
 ~~~
+
+
+## Self-Evolution & Project Integration
+
+O NexCode inclui uma base inicial para importar projetos GitHub e preparar evoluções do próprio código sem editar a instalação ativa. Consulte [docs/SELF_EVOLUTION.md](docs/SELF_EVOLUTION.md) para o fluxo, limites e modelo de segurança.
+
+O agente agora expõe ferramentas de importação GitHub e autoevolução diretamente no modo Development: `import_github_project`, `analyze_imported_project`, `prepare_self_modification`, `write_evolution_file`, `run_evolution_command`, `inspect_evolution_diff` e `discard_evolution_worktree`. Cada clonagem, escrita, comando e descarte exige aprovação no terminal. O código do próprio NexCode só pode ser alterado em um Git worktree separado, fora do checkout ativo; a branch nunca é mesclada automaticamente.
+
+**Uso:** no modo Development, envie no chat: `Baixe https://github.com/usuario/projeto, analise a arquitetura e proponha como integrar suas funcionalidades ao NexCode.` Para autoalteração, peça a melhoria desejada; revise e aprove cada etapa. O projeto importado é tratado como código não confiável: nenhum script é executado durante a importação e instalação/testes/builds exigem aprovação explícita. Um sandbox/container dedicado e scanners avançados ainda são etapas futuras.

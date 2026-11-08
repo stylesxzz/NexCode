@@ -6,7 +6,7 @@ import { connectStdioServer } from "@nexcode/mcp";
 import { z } from "zod";
 
 export interface ApprovalRequest {
-  action: "write_file" | "run_command" | "mcp_connect" | "mcp_tool";
+  action: "write_file" | "run_command" | "mcp_connect" | "mcp_tool" | "project_import" | "self_modify" | "evolution_write" | "evolution_command" | "evolution_discard";
   summary: string;
   details: string;
 }

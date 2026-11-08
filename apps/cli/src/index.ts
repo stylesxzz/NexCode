@@ -50,7 +50,7 @@ const inputLine = new TextRenderable(renderer, {
   fg: "#39E58C",
 });
 const footer = new TextRenderable(renderer, {
-  content: "Enter send  •  F1/F2/F3 modes  •  F4 knowledge  •  /book add|list|remove  •  Y/N approval  •  Ctrl+C quit",
+  content: "Enter send  •  F1/F2/F3 modes  •  F4 knowledge  •  GitHub import + self-evolution in Development  •  Y/N approval  •  Ctrl+C quit",
   fg: "#73847A",
 });
 
