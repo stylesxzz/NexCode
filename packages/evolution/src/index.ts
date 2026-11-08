@@ -36,10 +36,6 @@ export interface WorktreeResult {
 }
 
 const MAX_SCAN_FILES = 20_000;
-const MANIFESTS = new Set([
-  "package.json", "pyproject.toml", "requirements.txt", "Cargo.toml",
-  "go.mod", "*.csproj", "*.sln",
-]);
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", ".venv", "venv", "target"]);
 
 function isInside(parent: string, candidate: string): boolean {
@@ -129,15 +125,17 @@ export async function analyzeProject(projectDirectory: string): Promise<ProjectA
   const warnings: string[] = [];
   const queue = [root];
   let filesScanned = 0;
+  let entriesScanned = 0;
   let truncated = false;
 
   while (queue.length > 0) {
     const current = queue.shift()!;
     const entries = await readdir(current, { withFileTypes: true });
     for (const entry of entries) {
-      if (filesScanned >= MAX_SCAN_FILES) {
+      entriesScanned++;
+      if (entriesScanned > MAX_SCAN_FILES) {
         truncated = true;
-        warnings.push(`Análise limitada a ${MAX_SCAN_FILES} arquivos.`);
+        warnings.push(`Análise limitada a ${MAX_SCAN_FILES} entradas de diretório.`);
         queue.length = 0;
         break;
       }
