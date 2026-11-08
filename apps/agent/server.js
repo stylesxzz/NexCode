@@ -43,6 +43,7 @@ async function rpc(server,method,params={}){
  const headers={"content-type":"application/json","accept":"application/json, text/event-stream"};
  if(server.accessToken)headers.authorization="Bearer "+server.accessToken;
  if(server.sessionId)headers["mcp-session-id"]=server.sessionId;
+ if(server.protocolVersion)headers["mcp-protocol-version"]=server.protocolVersion;
  const notification=method.startsWith("notifications/");
  const payload={jsonrpc:"2.0",...(notification?{}:{id:randomBytes(8).toString("hex")}),method,params};
  const response=await fetch(server.url,{method:"POST",headers,body:JSON.stringify(payload)});
@@ -55,7 +56,7 @@ async function rpc(server,method,params={}){
  if(result.error)throw Error(result.error.message||"MCP JSON-RPC error");
  return result.result||result;
 }
-async function connectMcp(server){await rpc(server,"initialize",{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"nexo",version:"1.1.0"}});await rpc(server,"notifications/initialized");const listed=await rpc(server,"tools/list");server.tools=listed.tools||[];mcpLive.set(server.name,server);return server.tools}
+async function connectMcp(server){const initialized=await rpc(server,"initialize",{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"nexo",version:"1.1.0"}});server.protocolVersion=initialized.protocolVersion||"2025-03-26";await rpc(server,"notifications/initialized");const listed=await rpc(server,"tools/list");server.tools=listed.tools||[];mcpLive.set(server.name,server);return server.tools}
 const builtin=[
  {type:"function",function:{name:"terminal",description:"Execute um comando no workspace. Use para criar, instalar, testar e analisar projetos. A execução é exibida ao usuário em tempo real.",parameters:{type:"object",properties:{command:{type:"string"},reason:{type:"string"}},required:["command","reason"]}}},
  {type:"function",function:{name:"read_file",description:"Read workspace file",parameters:{type:"object",properties:{path:{type:"string"}},required:["path"]}}},
