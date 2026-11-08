@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
-import { access, lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, relative, resolve, sep, isAbsolute, join } from "node:path";
+import { dirname, relative, resolve, sep, isAbsolute, join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { jsonSchema, tool } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
 import {
   analyzeProject,
@@ -148,6 +148,7 @@ export function createEvolutionTools(rootDir: string, requestApproval: ApprovalH
           details: `Reason: ${reason}\nSource checkout: ${root}\nA separate Git branch/worktree will be created under the operating system temporary directory. The active checkout remains untouched.`,
         });
         if (!approved) return { approved: false, message: "User denied self-modification workspace creation." };
+        if (activeWorktrees.has(root)) throw new Error("An evolution worktree is already active for this workspace. Inspect or discard it before creating another.");
         const destination = join(tmpdir(), `nexcode-evolution-${randomUUID()}`);
         const worktree = await createEvolutionWorktree(root, destination);
         activeWorktrees.set(root, worktree);
