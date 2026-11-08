@@ -217,3 +217,12 @@ Issues e pull requests são bem-vindos. Antes de enviar alterações, execute:
 npm test
 npm run check
 ~~~
+
+
+## Self-Evolution & Project Integration
+
+O NexCode inclui uma base inicial para importar projetos GitHub e preparar evoluções do próprio código sem editar a instalação ativa. Consulte [docs/SELF_EVOLUTION.md](docs/SELF_EVOLUTION.md) para o fluxo, limites e modelo de segurança.
+
+O pacote `@nexcode/evolution` oferece validação estrita de URLs GitHub HTTPS, clone raso sem submódulos ou execução de scripts, inventário somente leitura de linguagens/manifests e criação de Git worktrees isolados para alterações propostas. A validação estrutural verifica o diff sem executar comandos do projeto.
+
+**Importante:** importar não significa confiar nem executar. Instalação de dependências, testes/builds de código externo, ativação MCP e merge exigem aprovação explícita. O pacote ainda é a fundação técnica: a interface conversacional de importação, sandbox/container, scanners de licença/segredos/dependências, adaptadores automáticos e ativação integrada ainda não estão implementados.
