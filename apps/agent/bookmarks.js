@@ -36,9 +36,9 @@ export async function refreshBookmark(id) {
   const type=response.headers.get("content-type")||"";if(!type.includes("text/html")&&!type.includes("text/plain"))throw new Error("O site não retornou texto HTML/plain.");
   const reader=response.body.getReader(),decoder=new TextDecoder();let raw="",size=0;
   while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>1500000){await reader.cancel();break}raw+=decoder.decode(value,{stream:true});}
-  const plain=(type.includes("html")?raw.replace(/<script\b[^>]*>[\\s\S]*?<\\/script>/gi," ").replace(/<style\b[^>]*>[\\s\S]*?<\\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&"):raw).replace(/\s+/g," ").trim().slice(0,500000);
+  const plain=(type.includes("html")?raw.replace(/<script\b[^>]*>[\\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&"):raw).replace(/\s+/g," ").trim().slice(0,500000);
   if(!plain)throw new Error("Não foi possível extrair texto do site.");
-  item.content=plain;item.contentUpdatedAt=new Date().toISOString();item.title=(raw.match(/<title[^>]*>([\\s\S]*?)<\\/title>/i)?.[1]||item.name).replace(/<[^>]*>/g," ").trim().slice(0,160);
+  item.content=plain;item.contentUpdatedAt=new Date().toISOString();item.title=(raw.match(/<title[^>]*>([\\s\S]*?)<\/title>/i)?.[1]||item.name).replace(/<[^>]*>/g," ").trim().slice(0,160);
   await save(items);return{id:item.id,name:item.name,title:item.title,contentUpdatedAt:item.contentUpdatedAt};
 }
 export async function refreshAllBookmarks() {
