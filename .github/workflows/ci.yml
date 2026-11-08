@@ -1,7 +1,7 @@
 name: Nexo CI
 on:
   push:
-    branches: [main, rebuild/nexo-from-scratch, feature/live-agent-mcp-local-models, feature/fullscreen-chat-streaming-files]
+    branches: [main, rebuild/nexo-from-scratch, feature/live-agent-mcp-local-models, feature/fullscreen-chat-streaming-files, feat/nexcode-bookmarks-knowledge-mcp]
   pull_request:
     branches: [main]
 jobs:
