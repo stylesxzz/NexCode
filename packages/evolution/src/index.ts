@@ -221,7 +221,7 @@ export async function validateEvolutionWorktree(worktreeDirectory: string): Prom
   const worktree = path.resolve(worktreeDirectory);
   const root = path.resolve((await execFile("git", ["-C", worktree, "rev-parse", "--show-toplevel"])).stdout.trim());
   if (root !== worktree) throw new Error("O caminho não corresponde à raiz do worktree.");
-  await execFile("git", ["-C", worktree, "diff", "--check"]);
+  await execFile("git", ["-C", worktree, "diff", "--check", "HEAD"]);
   const status = await execFile("git", ["-C", worktree, "status", "--short"]);
   const changedFiles = status.stdout.split(/\r?\n/).filter(Boolean);
   return {
