@@ -91,6 +91,9 @@ importers:
       '@nexcode/core':
         specifier: workspace:*
         version: link:../core
+      '@nexcode/evolution':
+        specifier: workspace:*
+        version: link:../evolution
       '@nexcode/mcp':
         specifier: workspace:*
         version: link:../mcp
