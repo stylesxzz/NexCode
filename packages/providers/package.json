@@ -24,7 +24,8 @@
     "@nexcode/core": "workspace:*",
     "ai": "^6.0.322",
     "zod": "^4.6.7",
-    "@nexcode/mcp": "workspace:*"
+    "@nexcode/mcp": "workspace:*",
+    "@nexcode/evolution": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",
