@@ -6,7 +6,7 @@ import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import { resolve, join, relative, isAbsolute, extname, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { importPdfFile, listKnowledgeBooks, removeKnowledgeBook, retrieveKnowledge, formatKnowledgeContext, createSkillFromBook, listKnowledgeSkills, removeSkill } from "./knowledge.js";
+import { importPdfFile, importPdfUrl, listKnowledgeBooks, removeKnowledgeBook, retrieveKnowledge, formatKnowledgeContext, createSkillFromBook, listKnowledgeSkills, removeSkill } from "./knowledge.js";
 import { listBookmarks, addBookmark, removeBookmark, refreshBookmark, refreshAllBookmarks, retrieveBookmarks, formatBookmarkContext } from "./bookmarks.js";
 
 const ROOT=resolve(fileURLToPath(new URL("../../",import.meta.url))), WEB=join(ROOT,"apps/web"), HOME=join(homedir(),".nexcode"), MODEL_DIR=join(HOME,"models"), PORT=+(process.env.NEXCODE_PORT||4173), WORK=resolve(process.env.NEXCODE_WORKSPACE||process.argv[2]||process.cwd());
@@ -241,6 +241,7 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  if(u.pathname.startsWith("/api/bookmarks/")&&u.pathname.endsWith("/refresh")&&req.method==="POST")return send(res,200,await refreshBookmark(decodeURIComponent(u.pathname.split("/")[3])));
  if(u.pathname.startsWith("/api/bookmarks/")&&req.method==="DELETE")return send(res,200,{removed:await removeBookmark(decodeURIComponent(u.pathname.split("/").pop()))});
  if(u.pathname==="/api/knowledge"&&req.method==="GET")return send(res,200,await listKnowledgeBooks());
+ if(u.pathname==="/api/knowledge/url"&&req.method==="POST"){const b=await body(req);return send(res,201,await importPdfUrl(b.url))}
  if(u.pathname==="/api/knowledge/uploads"&&req.method==="POST"){const b=await body(req),name=String(b.fileName||"documento.pdf").replace(/[\\/]/g,"_").slice(0,120),max=Number(process.env.NEXCODE_MAX_PDF_BYTES)||0;if(!name.toLowerCase().endsWith(".pdf"))throw Error("Envie um PDF.");if(max&&Number(b.size)>max)throw Error("PDF excede NEXCODE_MAX_PDF_BYTES.");const id=randomBytes(16).toString("hex"),dir=join(HOME,"knowledge","uploads");await mkdir(dir,{recursive:true,mode:0o700});const path=join(dir,id+".part");await writeFile(path,Buffer.alloc(0),{mode:0o600});knowledgeUploads.set(id,{id,name,path,received:0,expected:Number(b.size)||0});return send(res,201,{id,received:0,chunkBytes:8*1024*1024})}
  if(u.pathname.startsWith("/api/knowledge/uploads/")&&req.method==="GET"){const x=knowledgeUploads.get(u.pathname.split("/").pop());if(!x)return send(res,404,{error:"Upload expirado ou inexistente."});return send(res,200,{id:x.id,received:x.received,expected:x.expected})}
  if(u.pathname.startsWith("/api/knowledge/uploads/")&&req.method==="PUT"){const x=knowledgeUploads.get(u.pathname.split("/").pop());if(!x)return send(res,404,{error:"Upload expirado ou inexistente."});const parts=[];let n=0;for await(const c of req){n+=c.length;if(n>8*1024*1024)throw Error("Cada parte deve ter até 8 MiB.");parts.push(c)}if(!n)throw Error("Parte vazia.");const max=Number(process.env.NEXCODE_MAX_PDF_BYTES)||0;if(max&&x.received+n>max)throw Error("PDF excede NEXCODE_MAX_PDF_BYTES.");await appendFile(x.path,Buffer.concat(parts));x.received+=n;return send(res,200,{id:x.id,received:x.received,expected:x.expected})}
