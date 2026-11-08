@@ -217,3 +217,42 @@ Issues e pull requests são bem-vindos. Antes de enviar alterações, execute:
 npm test
 npm run check
 ~~~
+
+
+## Interface web local integrada (opcional)
+
+A CLI/TUI TypeScript existente permanece no projeto. A interface web local é uma segunda forma de usar o agente; não substitui os pacotes, comandos ou recursos da TUI.
+
+Inicie com:
+
+```bash
+pnpm start:web
+```
+
+Abra `http://127.0.0.1:4173` e informe o código de pareamento exibido no terminal. Para desenvolvimento, use `pnpm dev:web`. A porta pode ser alterada com `NEXCODE_PORT`.
+
+### Modelos
+
+- Seletor de modelo diretamente no compositor do chat.
+- Perfis remotos OpenAI-compatible (OpenAI, NVIDIA NIM, OpenRouter e outros).
+- Servidores locais existentes, como Ollama, LM Studio e llama.cpp.
+- Upload de modelos GGUF, busca e download de GGUF na Hugging Face e runtime integrado `llama-server`.
+- Safetensors/PyTorch podem ser conectados por um runtime externo compatível com a API OpenAI.
+
+### Biblioteca de conhecimento e Skills
+
+PDFs são enviados em partes de 8 MiB e indexados em segundo plano. Não existe teto fixo de 40 MB. `NEXCODE_MAX_PDF_BYTES` pode definir um limite opcional em bytes (padrão: 0, sem teto definido pela aplicação); os limites práticos dependem do espaço em disco, memória para extração e limites do sistema. `NEXCODE_PDF_TEXT_MAX_BYTES` controla a saída textual do Poppler.
+
+Instale Poppler para extrair texto:
+- Kali/Debian/Ubuntu: `sudo apt install poppler-utils`
+- Termux: `pkg install poppler`
+- macOS: `brew install poppler`
+- Windows: instale Poppler e adicione `pdftotext.exe` ao PATH.
+
+O PDF original permanece em `~/.nexcode/knowledge/pdfs`; o texto é dividido em trechos por página e recuperado no chat por busca lexical (RAG). **Transformar em Skill** gera `~/.nexcode/skills/<slug>/SKILL.md`. Isso cria uma memória consultável e reutilizável, não retreina os pesos do modelo. PDFs digitalizados ainda exigem OCR.
+
+### Sites favoritos
+
+Salve sites HTTPS públicos no dock flutuante e atualize o conteúdo pelo botão ↻. O texto capturado pode ser recuperado como contexto durante as conversas. Sites privados/autenticados, redirecionamentos e hosts locais não são fontes suportadas. O conteúdo externo é sempre tratado como referência não confiável.
+
+A interface web compartilha os dados locais em `~/.nexcode` e escuta em `127.0.0.1`. Não exponha a porta diretamente à internet.
