@@ -1,12 +1,16 @@
 # NEXCODE Self-Evolution & Project Integration
 
-This document defines the safe workflow for importing external GitHub projects and proposing changes to NEXCODE itself. The package `@nexcode/evolution` currently provides the first, deliberately conservative building blocks. It does not silently install, execute, activate, or merge imported code.
+This document defines the safe workflow for importing external GitHub projects and proposing changes to NEXCODE itself. The `@nexcode/evolution` package provides the Git/import primitives, and the provider agent exposes them as approved tools in Development mode.
 
 ## User experience
 
 A user can ask:
 
 > Import https://github.com/owner/project, inspect it and prepare an integration proposal for NEXCODE.
+
+In the CLI, switch to **Development** mode and send a normal chat message such as `Import https://github.com/owner/project, inspect it and explain how to integrate its capabilities into NEXCODE.` The model can call `import_github_project`; after import, it can inspect files through the existing read-only workspace tools.
+
+For self-modification, ask the agent to improve NEXCODE itself. It must call `prepare_self_modification`, then use `write_evolution_file`, `run_evolution_command` and `inspect_evolution_diff`. Each write and command asks for approval in the terminal. The worktree is stored under the operating system temporary directory, outside the active checkout.
 
 The intended agent workflow is:
 
@@ -26,6 +30,16 @@ The intended agent workflow is:
 Self-modification follows the same process. The active checkout is the protected baseline. `createEvolutionWorktree` refuses a dirty source checkout, records its base commit and creates a branch under `nexcode/evolution-*`. All edits are confined to that worktree. The agent must not alter the active installation, global packages, credentials, system files or its own approval policy.
 
 A successful TypeScript build is not proof of safety. The user must review the diff and authorize the merge. Keep the previous stable commit available for rollback.
+
+## Agent tools
+
+- `import_github_project`: approval-gated shallow clone into `.nexcode/imports`, followed by a read-only inventory.
+- `analyze_imported_project`: read-only inventory of an imported directory.
+- `prepare_self_modification`: approval-gated Git worktree creation; refuses dirty source checkouts and keeps edits outside the active checkout.
+- `write_evolution_file`: approval-gated edits restricted to the active evolution worktree; blocks `.git`, `node_modules`, environment files and path escapes.
+- `run_evolution_command`: approval-gated direct process execution (no shell) inside the worktree.
+- `inspect_evolution_diff`: reports staged/unstaged changes and runs Git diff whitespace checks; never executes project scripts.
+- `discard_evolution_worktree`: approval-gated deletion of the isolated worktree and its dedicated branch.
 
 ## Package API
 
@@ -52,8 +66,8 @@ A successful TypeScript build is not proof of safety. The user must review the d
 
 ## Current implementation limits
 
-The package supplies URL validation, safe clone invocation, read-only project inventory, clean-checkout worktree creation and structural diff validation. It does **not** yet provide a full UI/chat command, a container runtime, license/secret/SCA scanners, AST-level compatibility analysis, automated adapters, test orchestration, MCP activation or automatic merge. Those must be added as separately reviewed integrations; do not describe them as implemented until tests and platform validation exist.
+The CLI agent integration and approval-gated tools are implemented. A dedicated container/VM sandbox, license/secret/SCA scanners, AST-level compatibility analysis, automatic adapters, automated MCP activation and automatic merge are not included. Commands execute on the host only after approval; for untrusted projects, use a disposable OS/container sandbox. The agent never merges automatically.
 
 ## Cross-platform notes
 
-The implementation uses Node.js built-ins and the Git executable, avoiding native Node addons. It is designed for Linux, Windows and Termux environments where Git and a supported Node.js runtime are installed. Container isolation is platform-specific and must be detected rather than assumed.
+The implementation uses Node.js built-ins and the Git executable, avoiding native Node addons. It is designed for Linux, Windows and Termux environments where Git and a supported Node.js runtime are installed. The existing OpenTUI CLI dependency currently requires Node.js 26.4+; use the same supported runtime for the full CLI. Container isolation is platform-specific and must be detected rather than assumed.
