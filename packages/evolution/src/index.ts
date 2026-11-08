@@ -236,6 +236,8 @@ export async function discardEvolutionWorktree(repositoryDirectory: string, work
   const worktree = path.resolve(worktreeDirectory);
   const root = path.resolve((await execFile("git", ["-C", worktree, "rev-parse", "--show-toplevel"])).stdout.trim());
   if (root !== worktree) throw new Error("O caminho não corresponde à raiz do worktree.");
+  const currentBranch = (await execFile("git", ["-C", worktree, "branch", "--show-current"])).stdout.trim();
+  if (currentBranch !== branch) throw new Error("A branch informada não é a branch ativa deste worktree.");
   await execFile("git", ["-C", repository, "worktree", "remove", "--force", worktree]);
   await execFile("git", ["-C", repository, "branch", "-D", branch]);
 }
