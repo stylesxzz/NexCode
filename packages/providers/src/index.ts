@@ -4,6 +4,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, stepCountIs } from "ai";
 import { createAuditedApprovalHandler, createConfiguredMcpTools, createWorkspaceTools, type ApprovalHandler } from "./tools.js";
+import { createEvolutionTools } from "./evolution-tools.js";
 import { formatKnowledgeContext, retrieveKnowledge, systemPromptFor, type ChatMessage, type WorkMode } from "@nexcode/core";
 
 export type ProviderName =
@@ -120,8 +121,11 @@ export async function generateResponse(
   const mcpTools = options.workspaceRoot && mode === "development" && auditedApproval
     ? await createConfiguredMcpTools(options.workspaceRoot, auditedApproval)
     : undefined;
+  const evolutionTools = options.workspaceRoot && mode === "development" && auditedApproval
+    ? createEvolutionTools(options.workspaceRoot, auditedApproval)
+    : undefined;
   const allTools = workspaceTools
-    ? { ...workspaceTools, ...(mcpTools?.tools ?? {}) }
+    ? { ...workspaceTools, ...(mcpTools?.tools ?? {}), ...(evolutionTools ?? {}) }
     : undefined;
 
   try {
