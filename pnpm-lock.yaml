@@ -49,6 +49,18 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/evolution:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.0
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.8
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(vite@8.3.6(@types/node@22.20.5))
+
   packages/mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
