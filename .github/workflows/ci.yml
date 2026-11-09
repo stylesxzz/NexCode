@@ -25,6 +25,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Validate workspace package graph
         run: pnpm --recursive list --depth -1
+      - name: Validate optional web interface syntax
+        run: pnpm check:web
       - name: Typecheck
         run: pnpm typecheck
       - name: Tests
