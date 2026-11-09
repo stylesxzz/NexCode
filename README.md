@@ -1,4 +1,4 @@
-> **Current CLI setup:** this repository's active TypeScript monorepo and OpenTUI CLI require Node.js 26.4+, pnpm 10.20.0 and Bun 1.3.14+. Follow the current [Quick Start guide](docs/QUICKSTART.md) for installation and the Development-mode GitHub import/self-evolution workflow. Older setup notes below may describe the previous web edition.
+> **NexCode interfaces:** the local Web workspace is available as the primary graphical interface (`pnpm start:web`); the TypeScript CLI/OpenTUI remains available separately (`pnpm dev:cli`). The Web agent runs on Node.js and does not require Bun/OpenTUI FFI. The CLI/TUI continues to use Node.js 26.4+, pnpm 10.20.0 and Bun 1.3.14+. See [Quick Start](docs/QUICKSTART.md).
 
 # Nexo — Local AI Workspace
 
@@ -228,3 +228,36 @@ O NexCode inclui uma base inicial para importar projetos GitHub e preparar evolu
 O agente agora expõe ferramentas de importação GitHub e autoevolução diretamente no modo Development: `import_github_project`, `analyze_imported_project`, `prepare_self_modification`, `write_evolution_file`, `run_evolution_command`, `inspect_evolution_diff` e `discard_evolution_worktree`. Cada clonagem, escrita, comando e descarte exige aprovação no terminal. O código do próprio NexCode só pode ser alterado em um Git worktree separado, fora do checkout ativo; a branch nunca é mesclada automaticamente.
 
 **Uso:** no modo Development, envie no chat: `Baixe https://github.com/usuario/projeto, analise a arquitetura e proponha como integrar suas funcionalidades ao NexCode.` Para autoalteração, peça a melhoria desejada; revise e aprove cada etapa. O projeto importado é tratado como código não confiável: nenhum script é executado durante a importação e instalação/testes/builds exigem aprovação explícita. Um sandbox/container dedicado e scanners avançados ainda são etapas futuras.
+
+
+## Local Web workspace (primary graphical interface)
+
+The local Web app runs alongside the TypeScript CLI/TUI; it does not replace or delete the monorepo packages. Start the graphical interface with:
+
+```bash
+pnpm start:web
+```
+
+Open `http://127.0.0.1:4173` and enter the pairing code printed in the terminal. For development, use `pnpm dev:web`. The web agent uses Node.js and does not require Bun or OpenTUI FFI. Keep the terminal process running while using the browser.
+
+### Included Web features
+
+- Chat interface with a model/API selector in the composer.
+- Provider profiles for OpenAI-compatible APIs, including NVIDIA NIM and OpenRouter.
+- Local model workflows: connect compatible local endpoints (such as Ollama/LM Studio/llama.cpp), upload GGUF files, and discover/download GGUF models from Hugging Face when a local `llama-server` runtime is configured.
+- MCP server connections, tool discovery and tool execution.
+- Skills management and persistent local memory.
+- PDF knowledge library with background indexing, retrieval in chat, and conversion of a book into a reusable Skill.
+- Floating favorites/bookmarks dock; refreshed public-page content can be retrieved as chat context.
+
+The Web agent stores its configuration, memory, models, Skills, knowledge library and bookmarks under `~/.nexcode/`. Existing data is reused; do not delete this directory when updating NexCode. API keys remain local and should never be committed.
+
+### Web commands
+
+| Command | Purpose |
+|---|---|
+| `pnpm start:web` | Start the local Web agent |
+| `pnpm dev:web` | Restart the Web agent when server files change |
+| `pnpm check:web` | Syntax-check the Web agent and browser client |
+
+The CLI/TUI remains available with `pnpm dev:cli` or `pnpm start:cli` and is an optional alternative interface.
