@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { importPdfFile, importPdfUrl, listKnowledgeBooks, removeKnowledgeBook, retrieveKnowledge, formatKnowledgeContext, createSkillFromBook, listKnowledgeSkills, removeSkill } from "./knowledge.js";
 import { listBookmarks, addBookmark, removeBookmark, refreshBookmark, refreshAllBookmarks, retrieveBookmarks, formatBookmarkContext } from "./bookmarks.js";
 
-const ROOT=resolve(fileURLToPath(new URL("../../",import.meta.url))), WEB=join(ROOT,"apps/web"), HOME=join(homedir(),".nexcode"), MODEL_DIR=join(HOME,"models"), PORT=+(process.env.NEXCODE_PORT||4173), WORK=resolve(process.env.NEXCODE_WORKSPACE||process.argv[2]||process.cwd());
+const ROOT=resolve(fileURLToPath(new URL("../../",import.meta.url))), WEB=join(ROOT,"apps/web"), HOME=join(homedir(),".nexcode"), MODEL_DIR=join(HOME,"models"), PORT=+(process.env.NEXCODE_PORT||4173), HOST=process.env.NEXCODE_HOST||"127.0.0.1", WORK=resolve(process.env.NEXCODE_WORKSPACE||process.argv[2]||process.cwd());
 await mkdir(HOME,{recursive:true,mode:0o700});
 await mkdir(MODEL_DIR,{recursive:true,mode:0o700});
 const cf=join(HOME,"config.json"),mf=join(HOME,"memory.json"),sd=join(HOME,"skills");
@@ -337,4 +337,4 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  let p=resolve(WEB,u.pathname==="/"?"index.html":decodeURIComponent(u.pathname.slice(1)));if(!inside(WEB,p))return send(res,404,{error:"Not found"});let file;try{file=await readFile(p)}catch(e){if(e.code==="ENOENT")return send(res,404,{error:"Not found"});throw e}res.writeHead(200,{"content-type":({".html":"text/html; charset=utf-8",".css":"text/css",".js":"text/javascript"})[extname(p)]||"application/octet-stream","x-content-type-options":"nosniff"});res.end(file)
  }catch(e){if(res.headersSent){res.destroy(e);return}send(res,500,{error:e.message})}});
 server.requestTimeout=0;server.timeout=0;
-server.listen(PORT,"127.0.0.1",()=>console.log("\nNEXO LOCAL AGENT\nWorkspace: "+WORK+"\nOpen: http://127.0.0.1:"+PORT+"\nPairing code: "+code+"\nKeep this terminal open. Ctrl+C to stop.\n"));
+server.listen(PORT,HOST,()=>console.log("\nNEXO LOCAL AGENT\nWorkspace: "+WORK+"\nOpen: http://"+HOST+":"+PORT+"\nPairing code: "+code+"\nKeep this terminal open. Ctrl+C to stop.\n"));
