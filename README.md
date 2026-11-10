@@ -243,6 +243,12 @@ Abra `http://127.0.0.1:4173` e use o código de pareamento exibido no terminal. 
 
 A seção **Sobre a gente** descreve a missão, o modelo open source e os princípios local-first do projeto.
 
+### Visualização da plataforma
+
+![Arquitetura das automações NEXCODE](docs/images/nexcode-automation-architecture.svg)
+
+![Editor visual de fluxos NEXCODE](docs/images/nexcode-workflow-editor.svg)
+
 ### Docker
 
 ```bash
