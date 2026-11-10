@@ -21,6 +21,29 @@ let mem=await read(mf,{nodes:[],edges:[]}),token=randomBytes(32).toString("hex")
 const mcpLive=new Map(),oauthPending=new Map(),mcpToolMap=new Map(),localRuntimes=new Map();
 const knowledgeUploads=new Map(),knowledgeJobs=new Map();
 const save=()=>writeFile(cf,JSON.stringify(cfg,null,2),{mode:0o600}),saveMem=()=>writeFile(mf,JSON.stringify(mem,null,2),{mode:0o600});
+const workflowFile=join(HOME,"workflows.json");
+const readWorkflows=async()=>{const value=await read(workflowFile,[]);return Array.isArray(value)?value:[]};
+const saveWorkflows=async items=>writeFile(workflowFile,JSON.stringify(items,null,2),{mode:0o600});
+async function runWorkflow(flow,input){
+ const nodes=Array.isArray(flow.nodes)?flow.nodes:[],edges=Array.isArray(flow.edges)?flow.edges:[];
+ if(!nodes.length||nodes.length>100)throw Error("O fluxo precisa ter entre 1 e 100 nós.");
+ const byId=new Map(nodes.map(n=>[String(n.id),n]));if(byId.size!==nodes.length)throw Error("IDs de nós duplicados.");
+ const incoming=new Map(nodes.map(n=>[String(n.id),[]])),outgoing=new Map(nodes.map(n=>[String(n.id),[]]));
+ for(const edge of edges){if(!byId.has(String(edge.source))||!byId.has(String(edge.target)))throw Error("Conexão aponta para um nó inexistente.");incoming.get(String(edge.target)).push(String(edge.source));outgoing.get(String(edge.source)).push(String(edge.target))}
+ const degree=new Map(nodes.map(n=>[String(n.id),incoming.get(String(n.id)).length])),queue=nodes.filter(n=>degree.get(String(n.id))===0),order=[];
+ while(queue.length){const n=queue.shift();order.push(n);for(const id of outgoing.get(String(n.id))){degree.set(id,degree.get(id)-1);if(degree.get(id)===0)queue.push(byId.get(id))}}
+ if(order.length!==nodes.length)throw Error("O fluxo contém um ciclo. Loops explícitos ainda não estão disponíveis.");
+ const outputs={};for(const node of order){const parents=incoming.get(String(node.id)),values=parents.map(id=>outputs[id]),value=values.length>1?values:values[0]??input,cfg=node.config||{};let result=value;
+  if(node.kind==="trigger")result=input;
+  else if(node.kind==="transform"){const template=cfg.template;if(typeof template==="string")result=template.replace(/\$\{input\}/g,typeof value==="string"?value:JSON.stringify(value));}
+  else if(node.kind==="condition"){const actual=String(cfg.field||"").split(".").filter(Boolean).reduce((v,k)=>v?.[k],value);const expected=cfg.value;let passed=false;switch(cfg.operator){case"equals":passed=actual===expected;break;case"not-equals":passed=actual!==expected;break;case"contains":passed=Array.isArray(actual)?actual.includes(expected):String(actual??"").includes(String(expected??""));break;case"greater-than":passed=Number(actual)>Number(expected);break;case"exists":passed=actual!==undefined&&actual!==null;break;default:throw Error("Operador de condição inválido.");}result={value,passed};}
+  else if(node.kind==="delay"){const ms=Math.max(0,Math.min(30000,Number(cfg.milliseconds)||0));await new Promise(resolve=>setTimeout(resolve,ms));}
+  else if(node.kind==="http"){const url=new URL(String(cfg.url||""));if(url.protocol!=="https:"||["localhost","127.0.0.1","::1"].includes(url.hostname))throw Error("O nó HTTP aceita apenas URLs HTTPS públicas.");const method=String(cfg.method||"GET").toUpperCase();if(!["GET","POST","PUT","PATCH","DELETE"].includes(method))throw Error("Método HTTP inválido.");const response=await fetch(url,{method,headers:{"content-type":"application/json",...(cfg.headers||{})},...(method==="GET"||method==="DELETE"?{}:{body:JSON.stringify(value)}),signal:AbortSignal.timeout(20000)});const raw=await response.text();if(!response.ok)throw Error("HTTP "+response.status+": "+raw.slice(0,500));try{result=JSON.parse(raw)}catch{result=raw}}
+  else throw Error("Tipo de nó ainda não executável: "+node.kind);
+  outputs[String(node.id)]=result;
+ }
+ return outputs;
+}
 const inside=(base,p)=>{const r=relative(base,p);return r===""||(!r.startsWith("..")&&!isAbsolute(r))};
 const eq=(a,b)=>{const x=Buffer.from(a||""),y=Buffer.from(b||"");return x.length===y.length&&timingSafeEqual(x,y)};
 const send=(res,s,o)=>{res.writeHead(s,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify(o))};
@@ -242,6 +265,10 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,"htt
  if(u.pathname==="/api/pair"&&req.method==="POST"){if(!eq((await body(req)).code,code))return send(res,401,{error:"Código incorreto"});paired=true;return send(res,200,{token})}
  if(u.pathname.startsWith("/api/")&&(!paired||!eq(req.headers.authorization?.replace(/^Bearer /,""),token)))return send(res,401,{error:"Não pareado"});
  if(u.pathname==="/api/status")return send(res,200,{workspace:WORK,model:activeModel().model,autonomy:cfg.autonomy});
+ if(u.pathname==="/api/workflows"&&req.method==="GET")return send(res,200,{items:await readWorkflows()});
+ if(u.pathname==="/api/workflows"&&req.method==="POST"){const b=await body(req);if(!b.name||!Array.isArray(b.nodes)||!Array.isArray(b.edges))throw Error("Defina nome, nós e conexões do fluxo.");if(b.nodes.length>100||b.edges.length>300)throw Error("Limite do editor: 100 nós e 300 conexões.");const items=await readWorkflows(),flow={id:String(b.id||randomBytes(12).toString("hex")),name:String(b.name).slice(0,120),version:1,enabled:b.enabled!==false,nodes:b.nodes,edges:b.edges,updatedAt:new Date().toISOString()};const index=items.findIndex(x=>x.id===flow.id);if(index>=0)items[index]=flow;else items.unshift(flow);await saveWorkflows(items);return send(res,200,{workflow:flow})}
+ if(u.pathname.startsWith("/api/workflows/")&&req.method==="DELETE"){const id=decodeURIComponent(u.pathname.split("/").pop()),items=await readWorkflows(),next=items.filter(x=>x.id!==id);if(next.length===items.length)return send(res,404,{error:"Fluxo não encontrado."});await saveWorkflows(next);return send(res,200,{removed:true})}
+ if(u.pathname.startsWith("/api/workflows/")&&u.pathname.endsWith("/run")&&req.method==="POST"){const id=decodeURIComponent(u.pathname.split("/")[3]),flow=(await readWorkflows()).find(x=>x.id===id);if(!flow)return send(res,404,{error:"Fluxo não encontrado."});if(flow.enabled===false)return send(res,409,{error:"Fluxo desabilitado."});const b=await body(req),outputs=await runWorkflow(flow,b.input??{});return send(res,200,{ok:true,outputs,completedAt:new Date().toISOString()})}
  if(u.pathname==="/api/bookmarks"&&req.method==="GET")return send(res,200,await listBookmarks());
  if(u.pathname==="/api/bookmarks"&&req.method==="POST"){const b=await body(req);return send(res,201,await addBookmark(b.name,b.url))}
  if(u.pathname==="/api/bookmarks/refresh"&&req.method==="POST")return send(res,200,{results:await refreshAllBookmarks()});
