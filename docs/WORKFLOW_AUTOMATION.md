@@ -59,7 +59,7 @@ The graph schema reserves a `code` node with a language setting. Arbitrary user 
 - `POST /api/workflows/:id/run`
 - `POST /api/control` with `{"action":"enable"}`, `disable` or `status`
 
-Os fluxos da aba Web são persistidos em `~/.nexcode/workflows.json`. Trigger, HTTP HTTPS, condition, transform e delay têm executores iniciais; branch routing, persistent storage, durable scheduling, production connector adapters, AI-node execution and sandboxed code execution are not complete. This is an early foundation, not a finished Zapier replacement.
+Os fluxos da aba Web são persistidos em `~/.nexcode/workflows.json`. Trigger, HTTP HTTPS, condition, transform, delay e AI Agent (usando o modelo selecionado, sem ferramentas externas) têm executores iniciais; branch routing, persistent storage, durable scheduling, production connector adapters, AI-node execution and sandboxed code execution are not complete. This is an early foundation, not a finished Zapier replacement.
 
 
 ## Integração na interface Web
@@ -68,4 +68,4 @@ A aba **Automações** está dentro do workspace Web principal (porta 4173), sep
 
 A geração por IA usa o endpoint de chat com uma instrução de saída JSON; ela produz um rascunho, não executa automaticamente operações externas. O usuário deve revisar URL, parâmetros e credenciais antes de salvar/executar.
 
-O runtime integrado executa DAGs acíclicos em ordem topológica. A execução inicial cobre Trigger, HTTP (somente HTTPS), Condition, Transform e Delay. Ainda faltam ramificações condicionais reais, repetição, execução isolada de JavaScript/Python, nós de agente de IA com ferramentas, conectores OAuth completos, fila durável e agendamento persistente. O serviço separado `apps/automations` permanece experimental e não é iniciado pelo Compose padrão; a interface principal usa a API integrada do agente Web.
+O runtime integrado executa DAGs acíclicos em ordem topológica. A execução inicial cobre Trigger, HTTP (somente HTTPS), Condition, Transform, Delay e AI Agent (modelo configurado, sem tool calling). Ainda faltam ramificações condicionais reais, repetição, execução isolada de JavaScript/Python, nós de agente de IA com ferramentas, conectores OAuth completos, fila durável e agendamento persistente. O serviço separado `apps/automations` permanece experimental e não é iniciado pelo Compose padrão; a interface principal usa a API integrada do agente Web.
