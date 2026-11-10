@@ -123,7 +123,7 @@ function addMessageActions(answer,prompt){
  bar.append(copy,retry);answer.after(bar);
 }
 let workflowId=null,workflowNodes=[],workflowEdges=[];
-const workflowTypes={trigger:"Trigger",http:"HTTP Request",condition:"Condição",transform:"Transformação",delay:"Delay"};
+const workflowTypes={trigger:"Trigger",http:"HTTP Request",ai:"AI Agent",condition:"Condição",transform:"Transformação",delay:"Delay"};
 function renderWorkflow(){
  const canvas=$("workflow-canvas");canvas.innerHTML="";
  if(!workflowNodes.length){canvas.innerHTML='<p class="empty">Adicione nós à automação para começar.</p>';return}
@@ -162,7 +162,7 @@ $("automation-generate").onclick=async()=>{
  const prompt=$("automation-prompt").value.trim();if(!prompt)return;
  const button=$("automation-generate");button.disabled=true;$("automation-ai-status").textContent="A IA está planejando os nós…";
  try{
-  const instruction="Crie um fluxo de automação para o pedido abaixo. Responda APENAS com JSON válido, sem markdown, no formato {\"name\":\"...\",\"nodes\":[{\"id\":\"n1\",\"kind\":\"trigger|http|condition|transform|delay\",\"name\":\"...\",\"config\":{}}],\"edges\":[{\"id\":\"e1\",\"source\":\"n1\",\"target\":\"n2\"}]}. Não invente credenciais. Se faltar integração, use um nó HTTP com URL placeholder e explique isso no nome. Pedido: "+prompt;
+  const instruction="Crie um fluxo de automação para o pedido abaixo. Responda APENAS com JSON válido, sem markdown, no formato {\"name\":\"...\",\"nodes\":[{\"id\":\"n1\",\"kind\":\"trigger|http|ai|condition|transform|delay\",\"name\":\"...\",\"config\":{}}],\"edges\":[{\"id\":\"e1\",\"source\":\"n1\",\"target\":\"n2\"}]}. Não invente credenciais. Se faltar integração, use um nó HTTP com URL placeholder e explique isso no nome. Pedido: "+prompt;
   const response=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+token},body:JSON.stringify({message:instruction,history:[]})});if(!response.ok)throw Error(await response.text());
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer="",answer="";
   while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop();for(const block of blocks){const event=block.match(/^event: (.+)$/m)?.[1],raw=block.match(/^data: (.+)$/m)?.[1];if(event==="assistant"&&raw)answer=JSON.parse(raw).answer||answer;if(event==="error"&&raw)throw Error(JSON.parse(raw).message)}}
