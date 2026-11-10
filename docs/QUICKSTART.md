@@ -1,16 +1,15 @@
-# NEXCODE 0.3 — Quick Start
+# NEXCODE — Quick Start
 
-This guide applies to the TypeScript monorepo and OpenTUI CLI on the `main` branch.
+This guide covers the local Web workspace (Chat + Automações) and the optional TypeScript CLI/TUI.
 
 ## Requirements
 
 - Git
 - Node.js **26.4.0 or newer**
 - pnpm **10.20.0**
-- Bun **1.3.14 or newer**
 - A provider API key (NVIDIA is the default)
 
-The OpenTUI CLI uses Bun to start its terminal UI. Node.js 26.4+ is required by the current OpenTUI runtime.
+The Web workspace uses Node.js APIs and does not require Bun. The optional CLI/TUI may have additional runtime requirements.
 
 ## Linux / Kali / macOS
 
@@ -109,3 +108,21 @@ The original checkout is not edited by these tools. The agent never merges autom
 ## Self-hosted workflow automation
 
 See [Workflow Automation](WORKFLOW_AUTOMATION.md). Configure `.env` from `.env.automations.example`, set a strong `NEXCODE_AUTOMATIONS_TOKEN`, and run `docker compose up -d --build`. Open `http://127.0.0.1:4280` for the visual editor prototype. Docker uses `restart: unless-stopped`; manual start/stop remains available through `docker compose start` and `docker compose stop`.
+
+
+## Interface Web (Chat + Automações)
+
+```bash
+pnpm start:web
+```
+
+Abra `http://127.0.0.1:4173` e informe o código de pareamento exibido no terminal. O Chat e a aba Automações são áreas separadas dentro do mesmo aplicativo. A aba de automações permite gerar rascunhos com IA, montar fluxos manualmente, salvar e executar os tipos de nó implementados.
+
+## Docker
+
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+Abra `http://127.0.0.1:4173`. O container usa `restart: unless-stopped`; controles manuais: `docker compose stop` e `docker compose start`. Os dados ficam no volume `nexcode_web_data`; o workspace de arquivos fica em `./workspace`.
