@@ -235,7 +235,7 @@ NEXCODE is expanding beyond the coding-agent CLI with a self-hosted, node-based 
 - HTTP API for workflow definitions, integration discovery, execution and manual/agent control.
 - Docker Compose deployment with health checks and automatic container restart policy.
 
-The integration catalog is an initial registry, **not** 32 complete production connectors. OAuth, credential vaulting, durable scheduling/queues, visual React Flow editor, isolated JavaScript/Python runners and broad provider-specific operations are planned follow-up work. See [Workflow Automation documentation](docs/WORKFLOW_AUTOMATION.md) for the current implementation boundary and roadmap.
+The integration catalog is an initial registry, **not** 32 complete production connectors. OAuth, credential vaulting, durable scheduling/queues, full React Flow editor, isolated JavaScript/Python runners and broad provider-specific operations are planned follow-up work. See [Workflow Automation documentation](docs/WORKFLOW_AUTOMATION.md) for the current implementation boundary and roadmap.
 
 ### Start the self-hosted automation service
 
