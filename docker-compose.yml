@@ -23,21 +23,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-  nexcode-automations:
-    build:
-      context: .
-      dockerfile: docker/automations.Dockerfile
-    image: nexcode-automations:local
-    container_name: nexcode-automations
-    restart: unless-stopped
-    init: true
-    ports:
-      - "${NEXCODE_AUTOMATIONS_BIND:-127.0.0.1}:4280:4280"
-    environment:
-      NODE_ENV: production
-      NEXCODE_AUTOMATIONS_PORT: 4280
-      NEXCODE_AUTOMATIONS_TOKEN: ${NEXCODE_AUTOMATIONS_TOKEN:?Set NEXCODE_AUTOMATIONS_TOKEN in .env}
-    volumes:
+volumes:
       - nexcode_automation_data:/app/data
     healthcheck:
       test: ["CMD","node","-e","fetch('http://127.0.0.1:4280/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -47,4 +33,3 @@ services:
       start_period: 15s
 volumes:
   nexcode_web_data:
-  nexcode_automation_data:
