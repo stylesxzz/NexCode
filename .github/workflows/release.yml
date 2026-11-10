@@ -1,12 +1,16 @@
 name: Package and Release
 
 on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (without v prefix)"
-        required: true
-        default: "0.4.0"
+        description: "Release version (leave empty to use package.json)"
+        required: false
+        default: ""
         type: string
       prerelease:
         description: "Mark this release as a pre-release"
@@ -19,12 +23,14 @@ permissions:
 
 jobs:
   package:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: Build release packages
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout validated source
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Set up Node.js
@@ -42,6 +48,21 @@ jobs:
         with:
           version: "10.20.0"
 
+      - name: Resolve release version
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="$INPUT_VERSION"
+          if [ -z "$VERSION" ]; then
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version: $VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -54,52 +75,63 @@ jobs:
 
       - name: Create source packages
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -euo pipefail
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid version: $VERSION" >&2
-            exit 1
-          fi
           mkdir -p release
           git archive --format=tar --prefix="NexCode-$VERSION/" HEAD | gzip -9 > "release/NexCode-$VERSION.tar.gz"
           git archive --format=zip --prefix="NexCode-$VERSION/" HEAD -o "release/NexCode-$VERSION.zip"
-          sha256sum release/* > "release/SHA256SUMS.txt"
-          printf '# NEXCODE %s\n\nSource distribution generated from commit %s.\n\n' "$VERSION" "$GITHUB_SHA" > release/BUILD-INFO.md
-          printf 'Version: %s\nCommit: %s\nNode: %s\npnpm: %s\nBun: %s\n' "$VERSION" "$GITHUB_SHA" "$(node --version)" "$(pnpm --version)" "$(bun --version)" >> release/BUILD-INFO.md
+          sha256sum release/*.tar.gz release/*.zip > release/SHA256SUMS.txt
+          {
+            printf '# NEXCODE %s\n\n' "$VERSION"
+            printf 'Source commit: %s\n\n' "$(git rev-parse HEAD)"
+            printf 'Node.js: %s\n' "$(node --version)"
+            printf 'pnpm: %s\n' "$(pnpm --version)"
+            printf 'Bun: %s\n' "$(bun --version)"
+          } > release/BUILD-INFO.md
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: NexCode-${{ inputs.version }}-packages
+          name: NexCode-${{ steps.meta.outputs.version }}-packages
           path: release/*
           if-no-files-found: error
           retention-days: 30
 
+      - name: Check whether release already exists
+        id: tagcheck
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish GitHub Release
+        if: steps.tagcheck.outputs.exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ inputs.version }}
-          target_commitish: ${{ github.sha }}
-          name: NEXCODE v${{ inputs.version }}
+          tag_name: v${{ steps.meta.outputs.version }}
+          target_commitish: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          name: NEXCODE v${{ steps.meta.outputs.version }}
           body: |
-            ## NEXCODE v${{ inputs.version }}
+            ## NEXCODE v${{ steps.meta.outputs.version }}
 
             Open-source, local-first AI development workspace and workflow automation platform.
 
             ### Downloads
             - **ZIP** — source package for Windows, Linux, macOS and Android/Termux (runtime compatibility varies).
-            - **TAR.GZ** — source package for Linux, macOS and other Unix-like environments.
-            - **SHA256SUMS.txt** — SHA-256 checksums for package verification.
+            - **TAR.GZ** — source package for Linux, macOS and Unix-like environments.
+            - **SHA256SUMS.txt** — SHA-256 checksums.
             - **BUILD-INFO.md** — build environment and source commit.
 
-            ### Installation
-            Extract the archive, install the documented Node.js and pnpm versions, then follow the README.
-
             ### Validation
-            This release is created only after syntax checks, type checking, tests and monorepo build pass.
+            Syntax checks, type checking, tests and monorepo build must pass before publication.
           files: |
             release/*
           draft: false
-          prerelease: ${{ inputs.prerelease }}
+          prerelease: ${{ inputs.prerelease || false }}
           generate_release_notes: true
