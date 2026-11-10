@@ -221,38 +221,6 @@ npm run check
 ~~~
 
 
-## Workflow Automation Platform (new foundation)
-
-NEXCODE is expanding beyond the coding-agent CLI with a self-hosted, node-based workflow automation engine built in TypeScript and Node.js. It is designed for low-code orchestration, custom logic and AI-agent workflows.
-
-![NEXCODE workflow automation architecture](docs/images/nexcode-automation-architecture.svg)
-
-![NEXCODE visual workflow editor concept](docs/images/nexcode-workflow-editor.svg)
-
-### Initial capabilities
-
-- Typed workflow graph, node validation, cycle detection and topological execution.
-- Node types reserved for triggers, HTTP, conditions, transforms, custom code, AI agents and delays.
-- Initial catalog of 32 integration definitions across AI, communication, productivity, developer tools, databases, payments, commerce and storage.
-- HTTP API for workflow definitions, integration discovery, execution and manual/agent control.
-- Docker Compose deployment with health checks and automatic container restart policy.
-
-The integration catalog is an initial registry, **not** 32 complete production connectors. OAuth, credential vaulting, durable scheduling/queues, full React Flow editor, isolated JavaScript/Python runners and broad provider-specific operations are planned follow-up work. See [Workflow Automation documentation](docs/WORKFLOW_AUTOMATION.md) for the current implementation boundary and roadmap.
-
-### Start the self-hosted automation service
-
-```bash
-cp .env.automations.example .env
-# Set NEXCODE_AUTOMATIONS_TOKEN to a long random value in .env
-docker compose up -d --build
-docker compose ps
-```
-
-Docker Compose uses `restart: unless-stopped`: after the stack has been started once, Docker restarts the service after daemon/host restarts unless the operator explicitly stopped it. Manual controls: `docker compose stop`, `docker compose start`. Workflow execution can also be enabled/disabled through the authenticated API. By default the API binds to `127.0.0.1:4280`.
-
-For development without Docker: `pnpm build:automations` then `pnpm start:automations`. API details, safety boundaries and examples are in [docs/WORKFLOW_AUTOMATION.md](docs/WORKFLOW_AUTOMATION.md).
-
-
 ## Self-Evolution & Project Integration
 
 O NexCode inclui uma base inicial para importar projetos GitHub e preparar evoluções do próprio código sem editar a instalação ativa. Consulte [docs/SELF_EVOLUTION.md](docs/SELF_EVOLUTION.md) para o fluxo, limites e modelo de segurança.
