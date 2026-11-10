@@ -104,3 +104,8 @@ The original checkout is not edited by these tools. The agent never merges autom
 - Dependency installation and command execution require approval.
 - Approved commands run on the host under the current user's privileges; use a disposable VM/container for untrusted code.
 - A dedicated sandbox, license scanner, secret scanner and dependency/SCA scanner are not yet included.
+
+
+## Self-hosted workflow automation
+
+See [Workflow Automation](WORKFLOW_AUTOMATION.md). Configure `.env` from `.env.automations.example`, set a strong `NEXCODE_AUTOMATIONS_TOKEN`, and run `docker compose up -d --build`. Open `http://127.0.0.1:4280` for the visual editor prototype. Docker uses `restart: unless-stopped`; manual start/stop remains available through `docker compose start` and `docker compose stop`.
