@@ -1,6 +1,6 @@
-# NEXCODE Workflow Automation (initial foundation)
+# NEXCODE Workflow Automation
 
-NEXCODE is adding a self-hosted workflow automation subsystem, inspired by node-based automation platforms. It is TypeScript/Node.js-first and designed to coexist with the coding-agent CLI.
+A aba Automações é integrada ao workspace Web do NEXCODE e fica separada do Chat. A experiência principal combina criação manual de nós e geração assistida por IA. O motor e as APIs são Node.js-first e coexistem com a CLI/TUI TypeScript.
 
 ## Current foundation
 
@@ -8,7 +8,7 @@ NEXCODE is adding a self-hosted workflow automation subsystem, inspired by node-
 - Graph validation (unique node IDs, valid edges and cycle detection).
 - Deterministic topological execution with per-node running/success/error events.
 - An initial catalog of 32 integration definitions spanning communication, productivity, AI, developer tools, databases, commerce, payments and storage.
-- A lightweight visual node editor prototype served by the automation app (drag nodes, connect ports, edit JSON configuration, save and run). It is not yet a full React Flow editor.
+- A editor visual inicial integrado à aba Automações do workspace Web, com adição manual de nós, configuração JSON, conexões sequenciais, geração de rascunho por IA, salvamento persistente e execução dos tipos suportados. Ainda não é um editor React Flow completo.
 - A small HTTP control plane for health, workflow definitions, integration catalog and execution controls.
 - Docker Compose deployment with health checks and `restart: unless-stopped`.
 
@@ -17,14 +17,12 @@ The catalog is a starting registry, not a claim that 32 production-ready adapter
 ## Run with Docker
 
 ```bash
-cp .env.automations.example .env
-# Set NEXCODE_AUTOMATIONS_TOKEN to a long random secret in .env
 docker compose up -d --build
 docker compose ps
-docker compose logs -f nexcode-automations
+docker compose logs -f nexcode-web
 ```
 
-Compose starts the service automatically when the stack is brought up and configures Docker restart policy `unless-stopped` after daemon/host restarts. Stop manually with `docker compose stop`; start with `docker compose start`; disable/re-enable workflow execution through the authenticated control API.
+Compose inicia a aplicação Web principal (Chat + Automações) e configura `restart: unless-stopped`. Após a primeira inicialização, Docker reinicia o container junto com o daemon/host, a menos que o operador o tenha parado manualmente. Use `docker compose stop` e `docker compose start` para controle manual. O serviço independente em `apps/automations` é experimental e não faz parte do Compose padrão.
 
 ```bash
 curl -H "Authorization: Bearer $NEXCODE_AUTOMATIONS_TOKEN" http://127.0.0.1:4280/health
@@ -32,7 +30,7 @@ curl -X POST -H "Authorization: Bearer $NEXCODE_AUTOMATIONS_TOKEN" -H 'content-t
 curl -X POST -H "Authorization: Bearer $NEXCODE_AUTOMATIONS_TOKEN" -H 'content-type: application/json' -d '{"action":"enable"}' http://127.0.0.1:4280/api/control
 ```
 
-The service is bound to loopback by default. Do not expose it publicly without TLS, strong secrets, authorization, rate limiting and a hardened reverse proxy.
+O workspace Web é publicado em loopback por padrão. Não o exponha publicamente sem TLS, autenticação reforçada, rate limiting e proxy reverso endurecido.
 
 ## Manual and AI control
 
@@ -61,7 +59,7 @@ The graph schema reserves a `code` node with a language setting. Arbitrary user 
 - `POST /api/workflows/:id/run`
 - `POST /api/control` with `{"action":"enable"}`, `disable` or `status`
 
-Workflow definitions currently live in process memory and are lost when the service restarts. Trigger, HTTP, condition, transform and delay have basic executors; branch routing, persistent storage, durable scheduling, production connector adapters, AI-node execution and sandboxed code execution are not complete. This is an early foundation, not a finished Zapier replacement.
+Os fluxos da aba Web são persistidos em `~/.nexcode/workflows.json`. Trigger, HTTP HTTPS, condition, transform e delay têm executores iniciais; branch routing, persistent storage, durable scheduling, production connector adapters, AI-node execution and sandboxed code execution are not complete. This is an early foundation, not a finished Zapier replacement.
 
 
 ## Integração na interface Web
