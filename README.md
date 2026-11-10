@@ -258,4 +258,4 @@ docker compose ps
 
 O Compose inicia o workspace Web integrado em `http://127.0.0.1:4173`, com Chat e Automações na mesma aplicação. O container usa `restart: unless-stopped`, então reinicia automaticamente com o Docker, salvo quando parado manualmente. O volume `nexcode_web_data` guarda configurações, memória, modelos e fluxos; `./workspace` guarda o projeto de trabalho.
 
-A API do editor integrado salva os fluxos em `~/.nexcode/workflows.json`. Execução inicial: Trigger, HTTP HTTPS público, Condition, Transform e Delay. Nós de código isolado, agentes de IA dentro do runtime, ramificações condicionais completas, OAuth de conectores e agendamento durável ainda estão em evolução.
+A API do editor integrado salva os fluxos em `~/.nexcode/workflows.json`. Execução inicial: Trigger, HTTP HTTPS público, Condition, Transform, Delay e AI Agent usando o modelo selecionado. Nós de código isolado, agentes de IA dentro do runtime, ramificações condicionais completas, OAuth de conectores e agendamento durável ainda estão em evolução.
