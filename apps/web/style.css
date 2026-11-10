@@ -176,3 +176,17 @@
 .about-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:1050px}
 .about-grid .card h2{font-size:16px;color:var(--g)}
 @media(max-width:900px){.automation-layout{grid-template-columns:1fr}.automation-inspector{order:2}.about-grid{grid-template-columns:1fr}}
+
+
+/* Canvas node editor: drag nodes and connect output ports */
+.workflow-canvas{position:relative;min-height:560px;min-width:820px;overflow:auto}
+.workflow-edges{position:absolute;inset:0;width:100%;height:100%;min-width:820px;min-height:560px;pointer-events:none;z-index:0}
+.workflow-node{position:absolute;z-index:1;width:230px;display:flex;flex-direction:column;gap:9px;background:#151b11;border:1px solid #52633b;border-radius:11px;padding:11px;box-shadow:0 8px 24px #0008}
+.workflow-node-head{display:grid;grid-template-columns:minmax(0,1fr) 100px 28px;gap:6px;align-items:center;cursor:grab;touch-action:none}
+.workflow-node-head:active{cursor:grabbing}
+.workflow-node-head strong{font-size:11px;color:var(--g);overflow-wrap:anywhere}
+.workflow-node-head select,.workflow-node textarea{min-width:0;width:100%;background:#0b0f09;color:#f2f3ed;border:1px solid var(--line);padding:7px;border-radius:6px;font-size:11px}
+.workflow-node-head button{background:#321e18;color:#f1b7a6;border-radius:6px;padding:5px}
+.workflow-node textarea{resize:vertical}
+.workflow-port{align-self:flex-end;background:#26351a;color:#c4f45b;border:1px solid #647b39;border-radius:7px;padding:6px 9px;font-size:10px}
+.automation-main{overflow-x:auto}
