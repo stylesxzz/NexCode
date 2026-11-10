@@ -146,3 +146,33 @@
 #chat-model-select{width:100%;min-width:0;background:#191e14;color:#e7f1dc;border:1px solid #3c4c2c;border-radius:9px;padding:11px;font-size:12px}
 #chat-model-status{font-size:10px;color:#b8cf8b;overflow-wrap:anywhere;line-height:1.4}
 @media(max-width:700px){.composer .model-picker-toggle{max-width:132px;min-width:76px;padding:0 8px;font-size:10px}.model-picker-panel{left:0;width:min(320px,calc(100vw - 28px))}}
+
+
+/* Message actions */
+.message-actions{display:flex;gap:8px;margin:8px 0 14px 18px}
+.message-actions button{background:#151a10;border:1px solid var(--line);color:#cbd9b4;padding:7px 11px;border-radius:8px;font-size:11px}
+.message-actions button:hover{border-color:var(--g);color:var(--g)}
+/* Dedicated workflow automation workspace */
+.automation-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start}
+.automation-main{min-width:0}
+.automation-ai textarea{width:100%;min-height:86px;background:#0c100a;border:1px solid var(--line);border-radius:9px;color:#f2f3ed;padding:12px;resize:vertical}
+.automation-ai button,.automation-toolbar button,.node-palette button{background:#29301e;color:var(--g);border:1px solid #52623b;padding:9px 12px;border-radius:8px}
+.automation-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:18px 0 10px}
+.automation-toolbar h2{margin-right:auto}
+.workflow-input{width:100%;max-width:420px;background:#171a14;color:white;border:1px solid var(--line);padding:10px;border-radius:8px;margin-bottom:10px}
+.node-palette{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.workflow-canvas{min-height:240px;border:1px solid var(--line);border-radius:13px;padding:14px;background:radial-gradient(circle,#29351b 1px,transparent 1px),#0d100b;background-size:20px 20px}
+.workflow-node{display:grid;grid-template-columns:minmax(0,1fr) 100px 34px;gap:8px;align-items:center;background:#151b11;border:1px solid #3b4b2c;border-radius:9px;padding:10px;margin:8px 0}
+.workflow-node strong{color:var(--g);font-size:12px}
+.workflow-node input,.workflow-node select{min-width:0;width:100%;background:#0b0f09;color:white;border:1px solid var(--line);padding:7px;border-radius:6px}
+.workflow-node button{background:#321e18;color:#f1b7a6;border-radius:6px;padding:7px}
+.workflow-log{white-space:pre-wrap;overflow:auto;max-height:200px;background:#050705;border:1px solid var(--line);border-radius:9px;padding:12px;color:#c4f45b;font-size:11px}
+.workflow-list-item{display:block;width:100%;text-align:left;background:#151a10;color:#dce7cb;border:1px solid var(--line);padding:10px;border-radius:8px;margin:7px 0}
+.automation-inspector{background:#0d100b;border:1px solid var(--line);border-radius:12px;padding:14px}
+.about-hero{max-width:850px;padding:38px 0 20px}
+.about-hero small{letter-spacing:3px;color:var(--g)}
+.about-hero h1{font-size:clamp(32px,5vw,54px);margin:12px 0}
+.about-hero p,.about-grid p{color:var(--muted);line-height:1.8}
+.about-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:1050px}
+.about-grid .card h2{font-size:16px;color:var(--g)}
+@media(max-width:900px){.automation-layout{grid-template-columns:1fr}.automation-inspector{order:2}.about-grid{grid-template-columns:1fr}}
