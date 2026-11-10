@@ -259,3 +259,13 @@ docker compose ps
 O Compose inicia o workspace Web integrado em `http://127.0.0.1:4173`, com Chat e Automações na mesma aplicação. O container usa `restart: unless-stopped`, então reinicia automaticamente com o Docker, salvo quando parado manualmente. O volume `nexcode_web_data` guarda configurações, memória, modelos e fluxos; `./workspace` guarda o projeto de trabalho.
 
 A API do editor integrado salva os fluxos em `~/.nexcode/workflows.json`. Execução inicial: Trigger, HTTP HTTPS público, Condition, Transform, Delay e AI Agent usando o modelo selecionado. Nós de código isolado, agentes de IA dentro do runtime, ramificações condicionais completas, OAuth de conectores e agendamento durável ainda estão em evolução.
+
+
+## Equipes de subagentes no Chat principal
+
+O Chat principal pode delegar cada solicitação a duas equipes independentes, selecionáveis diretamente no composer:
+
+- **Programação (6):** Arquiteto de Software, Front-end, Back-end, Full-stack, QA/Testes e DevOps/Infraestrutura.
+- **Cybersecurity (6):** Líder de Segurança, Application Security, Pentest Web autorizado, Cloud/Infra Security, Auditoria de Código e Blue Team/Resposta.
+
+As equipes são executadas pelo modelo ativo configurado no workspace. Os subagentes produzem pareceres especializados em paralelo; o coordenador NEXCODE incorpora os resultados ao contexto e continua o trabalho com as ferramentas do agente principal. O estado de cada subagente é enviado ao chat em tempo real. Subagentes não alegam executar ferramentas: alterações e comandos só são considerados concluídos quando confirmados pelo agente principal.
