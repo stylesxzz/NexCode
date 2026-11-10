@@ -1,4 +1,4 @@
-> **Current CLI setup:** this repository's active TypeScript monorepo and OpenTUI CLI require Node.js 26.4+, pnpm 10.20.0 and Bun 1.3.14+. Follow the current [Quick Start guide](docs/QUICKSTART.md) for installation and the Development-mode GitHub import/self-evolution workflow. Older setup notes below may describe the previous web edition.
+> **Interface principal:** o NEXCODE inclui um workspace Web local com chat, modelos remotos/locais, memória, Skills, biblioteca de PDFs, favoritos e uma aba independente de Automações. A CLI/TUI TypeScript continua disponível como interface opcional. Consulte [Quick Start](docs/QUICKSTART.md).
 
 # Nexo — Local AI Workspace
 
@@ -260,3 +260,30 @@ O NexCode inclui uma base inicial para importar projetos GitHub e preparar evolu
 O agente agora expõe ferramentas de importação GitHub e autoevolução diretamente no modo Development: `import_github_project`, `analyze_imported_project`, `prepare_self_modification`, `write_evolution_file`, `run_evolution_command`, `inspect_evolution_diff` e `discard_evolution_worktree`. Cada clonagem, escrita, comando e descarte exige aprovação no terminal. O código do próprio NexCode só pode ser alterado em um Git worktree separado, fora do checkout ativo; a branch nunca é mesclada automaticamente.
 
 **Uso:** no modo Development, envie no chat: `Baixe https://github.com/usuario/projeto, analise a arquitetura e proponha como integrar suas funcionalidades ao NexCode.` Para autoalteração, peça a melhoria desejada; revise e aprove cada etapa. O projeto importado é tratado como código não confiável: nenhum script é executado durante a importação e instalação/testes/builds exigem aprovação explícita. Um sandbox/container dedicado e scanners avançados ainda são etapas futuras.
+
+
+## Workspace Web, Chat e Automações
+
+O workspace gráfico local é iniciado com:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm start:web
+```
+
+Abra `http://127.0.0.1:4173` e use o código de pareamento exibido no terminal. O Chat permanece separado da aba **Automações**. Nesta aba, o usuário pode criar nós manualmente ou pedir à IA um rascunho de fluxo, revisar, salvar e executar os tipos de nó suportados. As respostas do chat incluem ações de **Copiar** e **Tentar novamente**.
+
+A seção **Sobre a gente** descreve a missão, o modelo open source e os princípios local-first do projeto.
+
+### Docker
+
+```bash
+cp .env.automations.example .env
+# Configure NEXCODE_AUTOMATIONS_TOKEN para o serviço opcional de automações
+docker compose up -d --build
+docker compose ps
+```
+
+O Compose inicia o workspace Web em `http://127.0.0.1:4173` e o serviço de automações em `http://127.0.0.1:4280`. Ambos usam `restart: unless-stopped`. O chat e a aba de automações integrados usam o agente Web local; o serviço 4280 permanece como runtime separado/experimental. O volume `nexcode_web_data` guarda configurações, memória, modelos e fluxos; `./workspace` guarda o projeto de trabalho.
+
+A API do editor integrado salva os fluxos em `~/.nexcode/workflows.json`. Execução inicial: Trigger, HTTP HTTPS público, Condition, Transform e Delay. Nós de código isolado, agentes de IA dentro do runtime, ramificações condicionais completas, OAuth de conectores e agendamento durável ainda estão em evolução.
