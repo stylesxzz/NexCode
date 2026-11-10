@@ -1,8 +1,8 @@
 {
   "name": "nexcode",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Open-source, model-agnostic AI coding agent with an OpenTUI terminal.",
+  "description": "Open-source, model-agnostic AI coding agent and self-hosted workflow automation platform.",
   "license": "MIT",
   "packageManager": "pnpm@10.20.0",
   "engines": {
@@ -12,6 +12,9 @@
     "build": "turbo run build",
     "dev:cli": "pnpm --filter @nexcode/cli... build && pnpm --filter @nexcode/cli dev",
     "start:cli": "pnpm --filter @nexcode/cli start",
+    "dev:automations": "pnpm --filter @nexcode/automations dev",
+    "start:automations": "pnpm --filter @nexcode/automations start",
+    "build:automations": "pnpm --filter @nexcode/workflows build && pnpm --filter @nexcode/automations build",
     "test": "vitest run",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean"
