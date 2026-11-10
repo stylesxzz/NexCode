@@ -12,7 +12,7 @@
     "build": "turbo run build",
     "dev:cli": "pnpm --filter @nexcode/cli... build && pnpm --filter @nexcode/cli dev",
     "start:cli": "pnpm --filter @nexcode/cli start",
-    "dev:automations": "pnpm --filter @nexcode/automations dev",
+    "dev:automations": "pnpm --filter @nexcode/workflows build && pnpm --filter @nexcode/automations dev",
     "start:automations": "pnpm --filter @nexcode/automations start",
     "build:automations": "pnpm --filter @nexcode/workflows build && pnpm --filter @nexcode/automations build",
     "test": "vitest run",
