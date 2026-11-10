@@ -278,12 +278,10 @@ A seção **Sobre a gente** descreve a missão, o modelo open source e os princ�
 ### Docker
 
 ```bash
-cp .env.automations.example .env
-# Configure NEXCODE_AUTOMATIONS_TOKEN para o serviço opcional de automações
 docker compose up -d --build
 docker compose ps
 ```
 
-O Compose inicia o workspace Web em `http://127.0.0.1:4173` e o serviço de automações em `http://127.0.0.1:4280`. Ambos usam `restart: unless-stopped`. O chat e a aba de automações integrados usam o agente Web local; o serviço 4280 permanece como runtime separado/experimental. O volume `nexcode_web_data` guarda configurações, memória, modelos e fluxos; `./workspace` guarda o projeto de trabalho.
+O Compose inicia o workspace Web integrado em `http://127.0.0.1:4173`, com Chat e Automações na mesma aplicação. O container usa `restart: unless-stopped`, então reinicia automaticamente com o Docker, salvo quando parado manualmente. O volume `nexcode_web_data` guarda configurações, memória, modelos e fluxos; `./workspace` guarda o projeto de trabalho.
 
 A API do editor integrado salva os fluxos em `~/.nexcode/workflows.json`. Execução inicial: Trigger, HTTP HTTPS público, Condition, Transform e Delay. Nós de código isolado, agentes de IA dentro do runtime, ramificações condicionais completas, OAuth de conectores e agendamento durável ainda estão em evolução.
