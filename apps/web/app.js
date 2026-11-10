@@ -127,16 +127,29 @@ const workflowTypes={trigger:"Trigger",http:"HTTP Request",condition:"Condição
 function renderWorkflow(){
  const canvas=$("workflow-canvas");canvas.innerHTML="";
  if(!workflowNodes.length){canvas.innerHTML='<p class="empty">Adicione nós à automação para começar.</p>';return}
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.classList.add("workflow-edges");canvas.append(svg);
  workflowNodes.forEach((node,index)=>{
-  const row=document.createElement("div");row.className="workflow-node";
+  if(!Number.isFinite(node.x))node.x=28+(index%3)*270;
+  if(!Number.isFinite(node.y))node.y=28+Math.floor(index/3)*190;
+  const card=document.createElement("div");card.className="workflow-node";card.style.left=node.x+"px";card.style.top=node.y+"px";
+  const head=document.createElement("div");head.className="workflow-node-head";
   const title=document.createElement("strong");title.textContent=(index+1)+". "+node.name;
   const type=document.createElement("select");for(const [key,label] of Object.entries(workflowTypes)){const option=document.createElement("option");option.value=key;option.textContent=label;type.append(option)}type.value=node.kind;type.onchange=()=>{node.kind=type.value;node.name=workflowTypes[type.value];renderWorkflow()};
   const remove=document.createElement("button");remove.textContent="×";remove.title="Remover nó";remove.onclick=()=>{workflowNodes=workflowNodes.filter(x=>x.id!==node.id);workflowEdges=workflowEdges.filter(x=>x.source!==node.id&&x.target!==node.id);renderWorkflow()};
-  const config=document.createElement("input");config.placeholder="Configuração JSON";config.value=JSON.stringify(node.config||{});config.title="Configuração JSON do nó";config.onchange=()=>{try{node.config=JSON.parse(config.value);config.style.borderColor="var(--line)"}catch{config.style.borderColor="#e66"}};
-  row.append(title,type,remove);canvas.append(row);const cfg=document.createElement("div");cfg.style.margin="0 0 10px 12px";cfg.append(config);canvas.append(cfg);
+  head.append(title,type,remove);card.append(head);
+  const config=document.createElement("textarea");config.rows=3;config.placeholder='Configuração JSON (ex.: {"url":"https://..."})';config.value=JSON.stringify(node.config||{});config.onchange=()=>{try{node.config=JSON.parse(config.value);config.style.borderColor="var(--line)"}catch{config.style.borderColor="#e66"}};card.append(config);
+  const port=document.createElement("button");port.type="button";port.className="workflow-port";port.textContent=linkFrom===node.id?"Selecione destino":"Conectar";port.onclick=()=>{if(!linkFrom){linkFrom=node.id;port.textContent="Selecione destino";return}if(linkFrom!==node.id){workflowEdges=workflowEdges.filter(e=>!(e.source===linkFrom&&e.target===node.id));workflowEdges.push({id:crypto.randomUUID(),source:linkFrom,target:node.id});linkFrom=null;renderWorkflow()}};
+  card.append(port);
+  let drag=null;head.onpointerdown=e=>{if(e.target.tagName==="SELECT"||e.target.tagName==="BUTTON")return;drag={x:e.clientX,y:e.clientY,ox:node.x,oy:node.y};head.setPointerCapture(e.pointerId)};head.onpointermove=e=>{if(!drag)return;node.x=Math.max(0,drag.ox+e.clientX-drag.x);node.y=Math.max(0,drag.oy+e.clientY-drag.y);card.style.left=node.x+"px";card.style.top=node.y+"px";drawWorkflowEdges(svg)};head.onpointerup=()=>drag=null;
+  canvas.append(card);
  });
+ drawWorkflowEdges(svg);
 }
-document.querySelectorAll("[data-node]").forEach(button=>button.addEventListener("click",()=>{const kind=button.dataset.node;const previous=workflowNodes.at(-1);const node={id:crypto.randomUUID(),kind,name:workflowTypes[kind],config:{}};workflowNodes.push(node);if(previous)workflowEdges.push({id:crypto.randomUUID(),source:previous.id,target:node.id});renderWorkflow()}));
+function drawWorkflowEdges(svg){
+ svg.innerHTML="";svg.setAttribute("width","100%");svg.setAttribute("height","100%");
+ for(const edge of workflowEdges){const a=workflowNodes.find(n=>n.id===edge.source),b=workflowNodes.find(n=>n.id===edge.target);if(!a||!b)continue;const path=document.createElementNS("http://www.w3.org/2000/svg","path");const x1=a.x+230,y1=a.y+78,x2=b.x,y2=b.y+78;path.setAttribute("d","M"+x1+" "+y1+" C"+(x1+55)+" "+y1+","+(x2-55)+" "+y2+","+x2+" "+y2);path.setAttribute("stroke","#b9ed49");path.setAttribute("stroke-width","2");path.setAttribute("fill","none");svg.append(path)}
+}
+document.querySelectorAll("[data-node]").forEach(button=>button.addEventListener("click",()=>{const kind=button.dataset.node;const previous=workflowNodes.at(-1);const node={id:crypto.randomUUID(),kind,name:workflowTypes[kind],config:{},x:28+(workflowNodes.length%3)*270,y:28+Math.floor(workflowNodes.length/3)*190};workflowNodes.push(node);if(previous)workflowEdges.push({id:crypto.randomUUID(),source:previous.id,target:node.id});renderWorkflow()}));
 $("workflow-new").onclick=()=>{workflowId=null;workflowNodes=[];workflowEdges=[];$("workflow-name").value="Minha automação";$("workflow-log").textContent="Novo fluxo iniciado.";renderWorkflow()};
 async function saveWorkflow(){
  const body={id:workflowId||crypto.randomUUID(),name:$("workflow-name").value.trim()||"Minha automação",version:1,enabled:true,nodes:workflowNodes,edges:workflowEdges};
@@ -155,7 +168,7 @@ $("automation-generate").onclick=async()=>{
   while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop();for(const block of blocks){const event=block.match(/^event: (.+)$/m)?.[1],raw=block.match(/^data: (.+)$/m)?.[1];if(event==="assistant"&&raw)answer=JSON.parse(raw).answer||answer;if(event==="error"&&raw)throw Error(JSON.parse(raw).message)}}
   const start=answer.indexOf("{"),end=answer.lastIndexOf("}");if(start<0||end<=start)throw Error("A IA não retornou um JSON de fluxo válido. Tente reformular o pedido.");
   const draft=JSON.parse(answer.slice(start,end+1));if(!Array.isArray(draft.nodes)||!draft.nodes.length)throw Error("O rascunho não contém nós.");
-  workflowId=null;$("workflow-name").value=draft.name||"Automação criada por IA";workflowNodes=draft.nodes.map((n,i)=>({id:String(n.id||"node-"+i),kind:workflowTypes[n.kind]?n.kind:"transform",name:String(n.name||workflowTypes[n.kind]||"Transformação"),config:n.config&&typeof n.config==="object"?n.config:{}}));workflowEdges=Array.isArray(draft.edges)?draft.edges:[];renderWorkflow();$("automation-ai-status").textContent="Rascunho criado. Revise as configurações e salve o fluxo.";
+  workflowId=null;$("workflow-name").value=draft.name||"Automação criada por IA";workflowNodes=draft.nodes.map((n,i)=>({id:String(n.id||"node-"+i),kind:workflowTypes[n.kind]?n.kind:"transform",name:String(n.name||workflowTypes[n.kind]||"Transformação"),config:n.config&&typeof n.config==="object"?n.config:{},x:28+(i%3)*270,y:28+Math.floor(i/3)*190}));workflowEdges=Array.isArray(draft.edges)?draft.edges:[];renderWorkflow();$("automation-ai-status").textContent="Rascunho criado. Revise as configurações e salve o fluxo.";
  }catch(e){$("automation-ai-status").textContent="Erro: "+e.message}finally{button.disabled=false}
 };
 
