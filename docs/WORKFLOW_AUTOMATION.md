@@ -62,3 +62,12 @@ The graph schema reserves a `code` node with a language setting. Arbitrary user 
 - `POST /api/control` with `{"action":"enable"}`, `disable` or `status`
 
 Workflow definitions currently live in process memory and are lost when the service restarts. Trigger, HTTP, condition, transform and delay have basic executors; branch routing, persistent storage, durable scheduling, production connector adapters, AI-node execution and sandboxed code execution are not complete. This is an early foundation, not a finished Zapier replacement.
+
+
+## Integração na interface Web
+
+A aba **Automações** está dentro do workspace Web principal (porta 4173), separada do Chat. Ela permite adicionar manualmente nós Trigger, HTTP, Condition, Transform e Delay, gerar um rascunho de grafo por IA, revisar configurações, salvar e executar. A API do workspace persiste fluxos em `~/.nexcode/workflows.json`.
+
+A geração por IA usa o endpoint de chat com uma instrução de saída JSON; ela produz um rascunho, não executa automaticamente operações externas. O usuário deve revisar URL, parâmetros e credenciais antes de salvar/executar.
+
+O runtime integrado executa DAGs acíclicos em ordem topológica. A execução inicial cobre Trigger, HTTP (somente HTTPS), Condition, Transform e Delay. Ainda faltam ramificações condicionais reais, repetição, execução isolada de JavaScript/Python, nós de agente de IA com ferramentas, conectores OAuth completos, fila durável e agendamento persistente. O serviço separado `apps/automations` permanece experimental e não é iniciado pelo Compose padrão; a interface principal usa a API integrada do agente Web.
