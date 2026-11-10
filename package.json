@@ -17,7 +17,10 @@
     "build:automations": "pnpm --filter @nexcode/workflows build && pnpm --filter @nexcode/automations build",
     "test": "vitest run",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "start:web": "node apps/agent/server.js",
+    "dev:web": "node --watch apps/agent/server.js",
+    "check:web": "node --check apps/agent/server.js && node --check apps/agent/knowledge.js && node --check apps/agent/bookmarks.js && node --check apps/web/app.js"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",
