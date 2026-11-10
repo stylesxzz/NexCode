@@ -227,6 +227,8 @@ NEXCODE is expanding beyond the coding-agent CLI with a self-hosted, node-based 
 
 ![NEXCODE workflow automation architecture](docs/images/nexcode-automation-architecture.svg)
 
+![NEXCODE visual workflow editor concept](docs/images/nexcode-workflow-editor.svg)
+
 ### Initial capabilities
 
 - Typed workflow graph, node validation, cycle detection and topological execution.
