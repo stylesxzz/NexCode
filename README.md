@@ -1,6 +1,6 @@
 > **Interface principal:** o NEXCODE inclui um workspace Web local com chat, modelos remotos/locais, memória, Skills, biblioteca de PDFs, favoritos e uma aba independente de Automações. A CLI/TUI TypeScript continua disponível como interface opcional. Consulte [Quick Start](docs/QUICKSTART.md).
 
-# Nexo — Local AI Workspace
+# NEXCODE — Local AI Workspace
 
 <p align="center">
   <strong>Um ambiente de IA local conectado ao workspace e ao terminal da sua máquina.</strong><br>
