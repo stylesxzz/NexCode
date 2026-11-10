@@ -8,6 +8,7 @@ NEXCODE is adding a self-hosted workflow automation subsystem, inspired by node-
 - Graph validation (unique node IDs, valid edges and cycle detection).
 - Deterministic topological execution with per-node running/success/error events.
 - An initial catalog of 32 integration definitions spanning communication, productivity, AI, developer tools, databases, commerce, payments and storage.
+- A lightweight visual node editor prototype served by the automation app (drag nodes, connect ports, edit JSON configuration, save and run). It is not yet a full React Flow editor.
 - A small HTTP control plane for health, workflow definitions, integration catalog and execution controls.
 - Docker Compose deployment with health checks and `restart: unless-stopped`.
 
@@ -60,4 +61,4 @@ The graph schema reserves a `code` node with a language setting. Arbitrary user 
 - `POST /api/workflows/:id/run`
 - `POST /api/control` with `{"action":"enable"}`, `disable` or `status`
 
-Workflow persistence and concrete node executors are not yet production-complete; this is an initial foundation, not a finished Zapier replacement.
+Workflow definitions currently live in process memory and are lost when the service restarts. Trigger, HTTP, condition, transform and delay have basic executors; branch routing, persistent storage, durable scheduling, production connector adapters, AI-node execution and sandboxed code execution are not complete. This is an early foundation, not a finished Zapier replacement.
