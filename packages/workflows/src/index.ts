@@ -63,7 +63,7 @@ export async function executeWorkflow(flow:WorkflowDefinition,executors:Partial<
  const outputs:Record<string,unknown>={};const incoming=new Map(flow.nodes.map(n=>[n.id,flow.edges.filter(e=>e.target===n.id)]));
  for(const node of topologicalOrder(flow)){
   if(options.signal?.aborted)throw new Error("Workflow execution cancelled.");
-  const parents=incoming.get(node.id)!;const nodeInput=parents.length===0?input:parents.length===1?outputs[parents[0].source]:Object.fromEntries(parents.map(e=>[e.source,outputs[e.source]]));
+  const parents=incoming.get(node.id)!;const nodeInput=parents.length===0?input:parents.length===1?outputs[parents[0]!.source]:Object.fromEntries(parents.map(e=>[e.source,outputs[e.source]]));
   const executor=executors[node.kind];if(!executor)throw new Error(`No executor registered for node kind: ${node.kind}`);
   options.onNode?.(node.id,"running");
   try{outputs[node.id]=await executor(node,{input:nodeInput,outputs,secrets:options.secrets||{},signal:options.signal||new AbortController().signal});options.onNode?.(node.id,"success",outputs[node.id]);}
