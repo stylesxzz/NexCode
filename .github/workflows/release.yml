@@ -1,0 +1,105 @@
+name: Package and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (without v prefix)"
+        required: true
+        default: "0.4.0"
+        type: string
+      prerelease:
+        description: "Mark this release as a pre-release"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build release packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26.4.0"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10.20.0"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate source
+        run: |
+          pnpm check:web
+          pnpm typecheck
+          pnpm test
+          pnpm build
+
+      - name: Create source packages
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version: $VERSION" >&2
+            exit 1
+          fi
+          mkdir -p release
+          git archive --format=tar --prefix="NexCode-$VERSION/" HEAD | gzip -9 > "release/NexCode-$VERSION.tar.gz"
+          git archive --format=zip --prefix="NexCode-$VERSION/" HEAD -o "release/NexCode-$VERSION.zip"
+          sha256sum release/* > "release/SHA256SUMS.txt"
+          printf '# NEXCODE %s\n\nSource distribution generated from commit %s.\n\n' "$VERSION" "$GITHUB_SHA" > release/BUILD-INFO.md
+          printf 'Version: %s\nCommit: %s\nNode: %s\npnpm: %s\nBun: %s\n' "$VERSION" "$GITHUB_SHA" "$(node --version)" "$(pnpm --version)" "$(bun --version)" >> release/BUILD-INFO.md
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexCode-${{ inputs.version }}-packages
+          path: release/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: NEXCODE v${{ inputs.version }}
+          body: |
+            ## NEXCODE v${{ inputs.version }}
+
+            Open-source, local-first AI development workspace and workflow automation platform.
+
+            ### Downloads
+            - **ZIP** — source package for Windows, Linux, macOS and Android/Termux (runtime compatibility varies).
+            - **TAR.GZ** — source package for Linux, macOS and other Unix-like environments.
+            - **SHA256SUMS.txt** — SHA-256 checksums for package verification.
+            - **BUILD-INFO.md** — build environment and source commit.
+
+            ### Installation
+            Extract the archive, install the documented Node.js and pnpm versions, then follow the README.
+
+            ### Validation
+            This release is created only after syntax checks, type checking, tests and monorepo build pass.
+          files: |
+            release/*
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
