@@ -1,10 +1,8 @@
+# NEXCODE
+
 <p align="center">
-  <img src="docs/images/nexus-snake.jpg" alt="Mascote de serpente do Nexus Code" width="220" />
+  <img src="docs/images/nexcode-banner.jpg" alt="Banner Nexus Code com mascote de serpente e crédito Samael/stylesxzz" width="100%" />
 </p>
-
-<h1 align="center">Nexus Code</h1>
-
-<p align="center"><sub>Samael/stylesxzz</sub></p>
 
 <p align="center">
   <strong>Um workspace de IA local, agente de desenvolvimento e plataforma open source de automação.</strong><br />
