@@ -109,10 +109,10 @@ async function videoStatus(id,cfg){
 async function saveVideo(id,output,cfg,work){
  if(!cfg.replicateApiKey)throw Error("Configure o token da Replicate.");
  const raw=Array.isArray(output)?output[0]:output;if(typeof raw!=="string")throw Error("A geração não retornou uma URL de vídeo.");
- const u=await publicUrl(raw);const r=await safeFetch(u.toString(),{headers:{authorization:"Bearer "+cfg.replicateApiKey}});
+ const u=await publicUrl(raw);const r=await safeFetch(u.toString());
  if(!r.ok)throw Error("Falha ao baixar o vídeo: HTTP "+r.status);
  const type=r.headers.get("content-type")||"";if(!type.startsWith("video/")&&!/octet-stream/i.test(type))throw Error("A saída não é um arquivo de vídeo: "+type);
- const bytes=Buffer.from(await r.arrayBuffer());if(!bytes.length||bytes.length>300*1024*1024)throw Error("Vídeo vazio ou acima do limite de 300 MB.");
+ const declared=Number(r.headers.get("content-length"))||0;if(declared>300*1024*1024)throw Error("Vídeo acima do limite de 300 MB.");const chunks=[];let total=0;for await(const chunk of r.body){total+=chunk.length;if(total>300*1024*1024)throw Error("Vídeo acima do limite de 300 MB.");chunks.push(chunk)}const bytes=Buffer.concat(chunks);if(!bytes.length)throw Error("Vídeo vazio.");
  const target=safeFile(work,"nexcode-video-"+id+".mp4",".mp4");await mkdir(resolve(target,".."),{recursive:true});await writeFile(target,bytes,{mode:0o600});return {created:relative(resolve(work),target),format:"MP4",size:bytes.length};
 }
 export async function handleCreativeRequest({pathname,method,body,url,cfg,work,send}){
