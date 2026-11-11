@@ -76,7 +76,7 @@ O navegador funciona como interface. O agente local é o componente que acessa o
 - Modos de trabalho Development, Planning e Ask.
 - Ações de copiar resposta e tentar novamente.
 - Área Sobre a gente com a missão e os princípios do projeto.
-- Abas independentes para Chat, Memória, Skills, Integrações MCP e Automações.
+- Abas independentes para Chat, Memória, Skills, Integrações MCP, Automações e Web & Creative Studio.\n- Pesquisa web, leitura de páginas públicas, geração de imagens e criação assíncrona de vídeos com provedores externos configuráveis.
 
 ### Agente de desenvolvimento
 
@@ -330,7 +330,7 @@ O serviço Web usa a política `restart: unless-stopped`. Os dados do NEXCODE fi
 
 O pacote separado `apps/automations` não é iniciado pelo Compose padrão. Ele é experimental e tem configuração própria em `.env.automations.example`. Consulte [docs/WORKFLOW_AUTOMATION.md](docs/WORKFLOW_AUTOMATION.md) antes de iniciar esse serviço ou expor sua API.
 
-## Biblioteca de conhecimento em PDF
+## Web Intelligence & Creative Studio\n\nA aba **Web & Criativo** reúne pesquisa na Web, extração de conteúdo de páginas públicas, geração de imagens e geração assíncrona de vídeos. O agente também recebe ferramentas para pesquisar e abrir páginas, gerar imagens e iniciar tarefas de vídeo.\n\n- Pesquisa sem chave via DuckDuckGo; Tavily e Brave Search são opcionais.\n- Navegação com bloqueio de localhost, IPs privados/reservados, protocolos não HTTP(S), redirecionamentos excessivos e conteúdo acima de 3 MB.\n- Imagens via endpoint compatível com OpenAI Images (padrão `gpt-image-1`), salvas em `generated-media/` no workspace.\n- Vídeos via Replicate: configure o token e o identificador `proprietário/modelo`; acompanhe o job e salve o MP4 no workspace.\n- Credenciais ficam em `~/.nexcode/config.json` com permissões restritas e são mascaradas nas respostas da API.\n\n**Custos e limitações:** DuckDuckGo pode limitar ou alterar seu HTML. Tavily/Brave, geração de imagens e geração de vídeos dependem de contas e limites dos respectivos serviços. As gerações de mídia podem gerar cobranças. Vídeo depende de modelos disponíveis na Replicate e de seus parâmetros de entrada; nem todos os modelos aceitam duração, proporção ou imagem de referência. O NEXCODE não promete suporte universal a qualquer endpoint de mídia.\n\nAs APIs locais autenticadas são `/api/web/search`, `/api/web/open`, `/api/creative/image`, `/api/creative/video` e `/api/creative/video/:id`. A geração de vídeo usa polling e pode levar vários minutos.\n\n**Segurança:** navegação pública é limitada a HTTP(S), sem credenciais embutidas, portas personalizadas ou hosts privados. Ainda assim, o conteúdo remoto deve ser tratado como não confiável; não siga instruções encontradas em páginas.\n\n## Biblioteca de conhecimento em PDF
 
 A biblioteca local permite consultar PDFs com texto selecionável sem enviar os documentos para um serviço externo. O NEXCODE extrai texto com Poppler, indexa trechos e recupera passagens lexicalmente relevantes para o contexto.
 
