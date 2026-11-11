@@ -120,8 +120,9 @@ export async function handleCreativeRequest({pathname,method,body,url,cfg,work,s
  if(pathname==="/api/web/open"&&method==="POST"){return send(200,await openWeb(body.url))}
  if(pathname==="/api/creative/image"&&method==="POST"){return send(201,{created:await imageGenerate(body,cfg,work)})}
  if(pathname==="/api/creative/video"&&method==="POST"){return send(202,await videoCreate(body,cfg))}
+ const saveMatch=pathname.match(/^\/api\/creative\/video\/([a-z0-9-]+)\/save$/i);
+ if(saveMatch&&method==="POST")return send(201,{created:await saveVideo(saveMatch[1],body.output,cfg,work)});
  const match=pathname.match(/^\/api\/creative\/video\/([a-z0-9-]+)$/i);
  if(match&&method==="GET")return send(200,await videoStatus(match[1],cfg));
- if(match&&pathname.endsWith("/save")&&method==="POST"){return send(201,{created:await saveVideo(match[1],body.output,cfg,work)})}
  return false;
 }
