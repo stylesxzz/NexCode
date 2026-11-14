@@ -7,6 +7,19 @@ function renderAgentTeams(){for(const [team,items] of Object.entries(teamCatalog
 renderAgentTeams();
 function selectedAgentTeams(){return ["programming","cybersecurity"].filter(team=>$("team-"+team)?.checked)}
 
+function setAgentDockOpen(open){
+ const dock=$("agent-dock"),toggle=$("agent-dock-toggle"),panel=$("agent-dock-panel");
+ if(!dock||!toggle||!panel)return;
+ dock.classList.toggle("is-collapsed",!open);
+ toggle.setAttribute("aria-expanded",String(open));
+ toggle.setAttribute("aria-label",open?"Fechar painel de subagentes":"Abrir painel de subagentes");
+ panel.setAttribute("aria-hidden",String(!open));
+}
+$("agent-dock-toggle").onclick=()=>setAgentDockOpen($("agent-dock").classList.contains("is-collapsed"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")setAgentDockOpen(false)});
+document.addEventListener("click",e=>{const dock=$("agent-dock");if(dock&&!dock.contains(e.target)&&!dock.classList.contains("is-collapsed"))setAgentDockOpen(false)});
+
+
 function msg(role,t){let d=document.createElement("div");d.className="msg "+role;d.textContent=t;$("messages").append(d);$("messages").scrollTop=$("messages").scrollHeight;return d}
 function showImagePreviews(container,files){if(!files.length)return;const wrap=document.createElement("div");wrap.className="message-images";for(const file of files){const img=document.createElement("img");img.alt=file.name;img.src=URL.createObjectURL(file);wrap.append(img)}container.append(wrap)}
 function terminalEvent(data){const panel=$("terminal-output");panel.classList.remove("hide");if(data.kind==="command"){const h=document.createElement("div");h.className="term-command";h.textContent="$ "+data.command+"\n"+data.cwd;panel.append(h)}else if(data.kind==="stdout"||data.kind==="stderr"){const o=document.createElement("pre");o.className=data.kind==="stderr"?"term-stderr":"term-stdout";o.textContent=data.text;panel.append(o)}else if(data.kind==="exit"){const x=document.createElement("div");x.className="term-exit";x.textContent="Processo finalizado — código "+data.code;panel.append(x)}panel.scrollTop=panel.scrollHeight}
