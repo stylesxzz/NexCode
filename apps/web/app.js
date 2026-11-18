@@ -325,15 +325,27 @@ document.querySelector('[data-tab="automations"]')?.addEventListener('click',loa
 (()=>{
   const island=document.getElementById("agent-teams");
   const toggle=document.getElementById("agent-island-toggle");
+  const bookmarks=document.getElementById("bookmark-rail");
   if(!island||!toggle)return;
+  const placeBookmarks=()=>{
+    if(!bookmarks)return;
+    const expanded=island.dataset.expanded==="true";
+    const islandBottom=expanded?island.getBoundingClientRect().bottom:146;
+    const top=Math.max(154,Math.ceil(islandBottom+8));
+    bookmarks.style.top=top+"px";
+    bookmarks.style.transform="none";
+    bookmarks.style.maxHeight="calc(100vh - "+(top+12)+"px)";
+  };
   const setExpanded=(expanded)=>{
     island.classList.toggle("is-open",expanded);
     island.dataset.expanded=String(expanded);
     toggle.setAttribute("aria-expanded",String(expanded));
     toggle.setAttribute("aria-label",expanded?"Recolher equipe de agentes":"Mostrar equipe de agentes");
     toggle.title=expanded?"Recolher equipe de agentes":"Mostrar equipe de agentes";
+    requestAnimationFrame(placeBookmarks);
   };
   toggle.addEventListener("click",()=>setExpanded(island.dataset.expanded!=="true"));
+  window.addEventListener("resize",placeBookmarks);
   document.addEventListener("keydown",(event)=>{
     if(event.key==="Escape"&&island.dataset.expanded==="true"){
       setExpanded(false);toggle.focus();
