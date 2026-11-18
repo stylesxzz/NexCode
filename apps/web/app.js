@@ -302,3 +302,26 @@ $("automation-generate").onclick=async()=>{
 };
 
 document.querySelector('[data-tab="automations"]')?.addEventListener('click',loadWorkflows);
+
+
+// Retractable floating island for the agent teams. It overlays the chat instead of
+// participating in document flow, keeping the central AI workspace unobstructed.
+(()=>{
+  const island=document.getElementById("agent-teams");
+  const toggle=document.getElementById("agent-island-toggle");
+  if(!island||!toggle)return;
+  const setExpanded=(expanded)=>{
+    island.classList.toggle("is-open",expanded);
+    island.dataset.expanded=String(expanded);
+    toggle.setAttribute("aria-expanded",String(expanded));
+    toggle.setAttribute("aria-label",expanded?"Recolher equipe de agentes":"Mostrar equipe de agentes");
+    toggle.title=expanded?"Recolher equipe de agentes":"Mostrar equipe de agentes";
+  };
+  toggle.addEventListener("click",()=>setExpanded(island.dataset.expanded!=="true"));
+  document.addEventListener("keydown",(event)=>{
+    if(event.key==="Escape"&&island.dataset.expanded==="true"){
+      setExpanded(false);toggle.focus();
+    }
+  });
+  setExpanded(false);
+})();
