@@ -223,3 +223,50 @@
   .composer .voice-toggle{flex-basis:38px;width:38px;height:38px}
   .voice-status{font-size:10px}
 }
+
+
+/* Floating retractable agent island: overlays the workspace without taking layout space */
+#agent-teams.agent-teams{
+  position:fixed;top:104px;right:18px;z-index:80;
+  width:min(340px,calc(100vw - 28px));max-height:min(72vh,620px);
+  margin:0;padding:0;border:0;background:transparent;
+  pointer-events:none;overflow:visible;
+}
+#agent-teams .agent-island-toggle{
+  pointer-events:auto;display:flex;align-items:center;justify-content:center;
+  margin-left:auto;width:42px;height:42px;border-radius:14px;
+  border:1px solid #657d3d;background:rgba(13,17,11,.96);color:var(--g);
+  box-shadow:0 8px 28px #0009,0 0 18px #b9ed4920;cursor:pointer;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  transition:transform .2s,border-color .2s,background .2s;
+}
+#agent-teams .agent-island-toggle:hover{border-color:var(--g);background:#1a2412}
+#agent-teams .agent-island-chevron{font-size:25px;line-height:1;transition:transform .22s}
+#agent-teams.is-open .agent-island-chevron{transform:rotate(180deg)}
+#agent-teams .agent-island-content{
+  display:none;pointer-events:auto;margin-top:8px;padding:13px;
+  max-height:calc(min(72vh,620px) - 54px);overflow:auto;
+  border:1px solid #536a35;border-radius:16px;
+  background:rgba(10,14,9,.96);box-shadow:0 18px 48px #000b,0 0 24px #b9ed4914;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  transform:translateY(-6px);opacity:0;
+}
+#agent-teams.is-open .agent-island-content{
+  display:block;animation:agentIslandIn .2s ease forwards;
+}
+#agent-teams .agent-teams-heading{display:block;margin-bottom:12px}
+#agent-teams .agent-teams-heading strong{display:block;font-size:13px}
+#agent-teams .agent-teams-heading small{margin-top:4px}
+#agent-teams .agent-team-grid{grid-template-columns:1fr}
+#agent-teams .agent-team{background:#10160d}
+#agent-teams .agent-team-members{grid-template-columns:1fr 1fr}
+@keyframes agentIslandIn{to{transform:translateY(0);opacity:1}}
+@media(max-width:700px){
+  #agent-teams.agent-teams{top:82px;right:10px;width:min(320px,calc(100vw - 20px))}
+  #agent-teams .agent-island-toggle{width:40px;height:40px}
+  #agent-teams .agent-island-content{max-height:65vh}
+}
+@media(prefers-reduced-motion:reduce){
+  #agent-teams .agent-island-toggle,#agent-teams .agent-island-chevron{transition:none}
+  #agent-teams.is-open .agent-island-content{animation:none;opacity:1;transform:none}
+}
