@@ -41,8 +41,12 @@
 
 
 /* Floating saved-sites launcher and knowledge library */
-#bookmark-rail{position:fixed;z-index:20;right:12px;top:50%;transform:translateY(-50%);width:62px;max-height:min(72vh,620px);overflow:visible;background:#050605f2;border:1px solid #282d24;border-radius:28px;padding:10px 7px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 12px 38px #0009;backdrop-filter:blur(18px)}
-#bookmark-items{display:flex;flex-direction:column;align-items:center;gap:9px;max-height:calc(72vh - 70px);overflow-y:auto;overflow-x:visible;scrollbar-width:none}
+#bookmark-rail{position:fixed;z-index:82;right:12px;top:50%;transform:translateY(-50%);width:62px;max-height:min(72vh,620px);overflow:visible;display:flex;flex-direction:column;align-items:center;gap:9px}
+#bookmark-rail-toggle{width:48px;height:48px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;background:#c5f45b;color:#111;border:1px solid #9fca45;font-size:21px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px #0009,0 0 16px #b9ed4930;transition:transform .16s,filter .16s}
+#bookmark-rail-toggle:hover{transform:scale(1.08);filter:brightness(1.08)}
+#bookmark-rail-content{display:none;width:62px;max-height:min(64vh,550px);overflow:visible;background:#050605f2;border:1px solid #282d24;border-radius:28px;padding:10px 7px;flex-direction:column;align-items:center;gap:10px;box-shadow:0 12px 38px #0009;backdrop-filter:blur(18px)}
+#bookmark-rail.is-open #bookmark-rail-content{display:flex}
+#bookmark-items{display:flex;flex-direction:column;align-items:center;gap:9px;max-height:calc(64vh - 70px);overflow-y:auto;overflow-x:visible;scrollbar-width:none}
 #bookmark-items::-webkit-scrollbar{display:none}
 .bookmark-add,.bookmark-orb{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:radial-gradient(circle at 35% 25%,#303a2b,#10130f 68%);border:1px solid #4c5c3c;color:#d8f4a4;box-shadow:0 0 13px #b9ed4917;transition:transform .16s,border-color .16s}
 .bookmark-add{font-size:25px;background:#c5f45b;color:#111;border:0;font-weight:600}
@@ -71,7 +75,9 @@
 .knowledge-card small{width:100%;color:var(--muted);overflow-wrap:anywhere}
 .knowledge-card button:last-child{background:#292e24;color:#e7e9df;border:1px solid #424a39}
 @media(max-width:700px){
- #bookmark-rail{right:5px;width:48px;padding:8px 4px;border-radius:22px;max-height:58vh}
+ #bookmark-rail{right:5px;width:48px;max-height:58vh}
+ #bookmark-rail-toggle{width:40px;height:40px}
+ #bookmark-rail-content{width:48px;padding:8px 4px;border-radius:22px;max-height:58vh}
  #bookmark-items{max-height:calc(58vh - 60px);gap:7px}
  .bookmark-add,.bookmark-orb,.bookmark-item,.bookmark-item .bookmark-orb{width:38px;height:38px}
  .bookmark-orb img{width:22px;height:22px}
