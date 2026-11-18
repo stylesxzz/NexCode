@@ -41,7 +41,7 @@
 
 
 /* Floating saved-sites launcher and knowledge library */
-#bookmark-rail{position:fixed;z-index:82;right:12px;top:50%;transform:translateY(-50%);width:62px;max-height:min(72vh,620px);overflow:visible;display:flex;flex-direction:column;align-items:center;gap:9px}
+#bookmark-rail{position:fixed;z-index:82;right:8px;top:154px;transform:none;width:62px;max-height:calc(100vh - 166px);overflow:visible;display:flex;flex-direction:column;align-items:center;gap:8px;transition:top .18s ease}
 #bookmark-rail-toggle{width:48px;height:48px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;background:#c5f45b;color:#111;border:1px solid #9fca45;font-size:21px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px #0009,0 0 16px #b9ed4930;transition:transform .16s,filter .16s}
 #bookmark-rail-toggle:hover{transform:scale(1.08);filter:brightness(1.08)}
 #bookmark-rail-content{display:none;width:62px;max-height:min(64vh,550px);overflow:visible;background:#050605f2;border:1px solid #282d24;border-radius:28px;padding:10px 7px;flex-direction:column;align-items:center;gap:10px;box-shadow:0 12px 38px #0009;backdrop-filter:blur(18px)}
@@ -75,7 +75,7 @@
 .knowledge-card small{width:100%;color:var(--muted);overflow-wrap:anywhere}
 .knowledge-card button:last-child{background:#292e24;color:#e7e9df;border:1px solid #424a39}
 @media(max-width:700px){
- #bookmark-rail{right:5px;width:48px;max-height:58vh}
+ #bookmark-rail{right:0;width:48px;max-height:calc(100vh - 150px)}
  #bookmark-rail-toggle{width:40px;height:40px}
  #bookmark-rail-content{width:48px;padding:8px 4px;border-radius:22px;max-height:58vh}
  #bookmark-items{max-height:calc(58vh - 60px);gap:7px}
