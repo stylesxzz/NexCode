@@ -75,7 +75,7 @@
 .knowledge-card small{width:100%;color:var(--muted);overflow-wrap:anywhere}
 .knowledge-card button:last-child{background:#292e24;color:#e7e9df;border:1px solid #424a39}
 @media(max-width:700px){
- #bookmark-rail{right:0;width:48px;max-height:calc(100vh - 150px)}
+ #bookmark-rail{right:6px;width:48px;max-height:calc(100vh - 150px)}
  #bookmark-rail-toggle{width:40px;height:40px}
  #bookmark-rail-content{width:48px;padding:8px 4px;border-radius:22px;max-height:58vh}
  #bookmark-items{max-height:calc(58vh - 60px);gap:7px}
