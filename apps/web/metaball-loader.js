@@ -211,11 +211,15 @@
     connectedCallback() {
       if (this._started) return;
       this._started = true;
-      this._size = Math.max(48, Number(this.getAttribute("size")) || 180);
-      this._speed = Math.max(0, Number(this.getAttribute("speed")) || 1);
+      const requestedSize = Number(this.getAttribute("size")) || 180;
+      this._size = Math.max(48, Math.min(requestedSize, Math.round(window.innerWidth * 0.42)));
+      const requestedSpeed = Number(this.getAttribute("speed"));
+      this._speed = Number.isFinite(requestedSpeed) ? Math.max(0, requestedSpeed) : 1;
       this.style.width = this._size + "px";
       this.style.height = this._size + "px";
       this.style.display = "block";
+      const requestedColor = this.getAttribute("color");
+      if (requestedColor) this.style.color = requestedColor;
       this.setAttribute("role", "img");
       this.setAttribute("aria-label", this.getAttribute("label") || "Nexo em movimento");
       this._canvas = document.createElement("canvas");
