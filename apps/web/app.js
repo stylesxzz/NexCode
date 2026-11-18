@@ -1,4 +1,4 @@
-let token=sessionStorage.getItem("nexcode-token")||"",history=[],busy=false,pendingImages=[];const $=x=>document.getElementById(x);async function api(p,m="GET",d){let r=await fetch("/api"+p,{method:m,headers:{"content-type":"application/json",authorization:"Bearer "+token},body:d?JSON.stringify(d):undefined}),j=await r.json();if(!r.ok)throw Error(j.error||"HTTP "+r.status);return j}
+let token=sessionStorage.getItem("nexcode-token")||"",history=[],busy=false,pendingImages=[];let voiceModeActive=false,voiceRecognition=null,voiceSpeaking=false,voiceTurnPending=false,voiceRestartTimer=null;const $=x=>document.getElementById(x);async function api(p,m="GET",d){let r=await fetch("/api"+p,{method:m,headers:{"content-type":"application/json",authorization:"Bearer "+token},body:d?JSON.stringify(d):undefined}),j=await r.json();if(!r.ok)throw Error(j.error||"HTTP "+r.status);return j}
 $("connect").onclick=async()=>{try{let r=await fetch("/api/pair",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:$("code").value})}),j=await r.json();if(!r.ok)throw Error(j.error);token=j.token;sessionStorage.setItem("nexcode-token",token);boot()}catch(e){$("err").textContent=e.message}};
 async function boot(){try{let s=await api("/status");$("pair").classList.add("hide");$("app").classList.remove("hide");$("workspace").textContent=s.workspace;$("model").value=s.model;$("auto").checked=s.autonomy;let c=await api("/config");if(window.initCreative)await window.initCreative(c);$("base").value=c.baseUrl;$("key").value=c.apiKey;$("provider").value=c.provider||"openai-compatible";await loadModels();await loadLocalAssets();await loadBookmarks();await loadKnowledge();await loadMcp()}catch(e){$("pair").classList.remove("hide");$("app").classList.add("hide");console.error(e)}}if(token)boot();
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");document.querySelectorAll(".tab").forEach(x=>x.classList.add("hide"));$(b.dataset.tab).classList.remove("hide");if(b.dataset.tab==="memory")loadMemory();if(b.dataset.tab==="skills")loadSkills();if(b.dataset.tab==="knowledge")loadKnowledge();if(b.dataset.tab==="mcp")loadMcp();if(b.dataset.tab==="settings"){loadModels();loadLocalAssets()}});
@@ -11,7 +11,130 @@ function msg(role,t){let d=document.createElement("div");d.className="msg "+role
 function showImagePreviews(container,files){if(!files.length)return;const wrap=document.createElement("div");wrap.className="message-images";for(const file of files){const img=document.createElement("img");img.alt=file.name;img.src=URL.createObjectURL(file);wrap.append(img)}container.append(wrap)}
 function terminalEvent(data){const panel=$("terminal-output");panel.classList.remove("hide");if(data.kind==="command"){const h=document.createElement("div");h.className="term-command";h.textContent="$ "+data.command+"\n"+data.cwd;panel.append(h)}else if(data.kind==="stdout"||data.kind==="stderr"){const o=document.createElement("pre");o.className=data.kind==="stderr"?"term-stderr":"term-stdout";o.textContent=data.text;panel.append(o)}else if(data.kind==="exit"){const x=document.createElement("div");x.className="term-exit";x.textContent="Processo finalizado — código "+data.code;panel.append(x)}panel.scrollTop=panel.scrollHeight}
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve({name:file.name,mime:file.type,data:String(reader.result).split(",")[1]});reader.onerror=()=>reject(Error("Não foi possível ler "+file.name));reader.readAsDataURL(file)})}
-async function send(t){if((!t.trim()&&!pendingImages.length)||busy)return;busy=true;$("send").disabled=true;$("attach").disabled=true;$("chat").classList.add("has-messages");$("welcome").classList.add("hide");const files=[...pendingImages];const user=msg("user",t||"Analise estas imagens de referência.");showImagePreviews(user,files);$("prompt").value="";$("terminal-output").innerHTML="";$("terminal-output").classList.add("hide");$("generated-files").innerHTML="";$("generated-files").classList.add("hide");$("image-preview").innerHTML="";pendingImages=[];const answer=msg("assistant","");answer.classList.add("streaming");let started=Date.now(),statusText="Conectando ao modelo…";$("activity").textContent=statusText;const timer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);$("activity").textContent=statusText+" · "+seconds+"s"},1000);try{const attachments=await Promise.all(files.map(readImage));const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+token},body:JSON.stringify({message:t,history,attachments,teams:selectedAgentTeams()})});if(!r.ok)throw Error((await r.text())||"HTTP "+r.status);const reader=r.body.getReader(),decoder=new TextDecoder();let buffer="",final="",streamed="";while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop();for(const block of blocks){const event=block.match(/^event: (.+)$/m)?.[1],raw=block.match(/^data: (.+)$/m)?.[1];if(!event||!raw)continue;const data=JSON.parse(raw);if(event==="terminal")terminalEvent(data);if(event==="tool_result"&&data.result?.created)showGeneratedFile(data.result.created,data.result.format||"Arquivo");if(event==="status"){statusText=data.message||"Executando…";$("activity").textContent=statusText;}if(event==="team_agent"){$("team-status").textContent=data.name+ (data.state==="running"?" · trabalhando…":data.state==="success"?" · concluído":" · falhou: "+(data.error||"erro"))}if(event==="delta"){streamed+=data.text||"";answer.textContent=streamed;$("messages").scrollTop=$("messages").scrollHeight}if(event==="assistant"){final=data.answer||"";answer.textContent=final}if(event==="error")throw Error(data.message)}}if(!final&&!streamed)answer.textContent="A execução terminou sem resposta textual.";history.push({role:"user",content:t||"Analise estas imagens de referência."},{role:"assistant",content:final||streamed||answer.textContent})}catch(e){answer.textContent="Erro: "+e.message}finally{clearInterval(timer);answer.classList.remove("streaming");busy=false;$("send").disabled=false;$("attach").disabled=false;$("activity").textContent="Pronto";$("messages").scrollTop=$("messages").scrollHeight;addMessageActions(answer,t)}}
+async function send(t){if((!t.trim()&&!pendingImages.length)||busy)return;busy=true;$("send").disabled=true;$("attach").disabled=true;$("chat").classList.add("has-messages");$("welcome").classList.add("hide");const files=[...pendingImages];const user=msg("user",t||"Analise estas imagens de referência.");showImagePreviews(user,files);$("prompt").value="";$("terminal-output").innerHTML="";$("terminal-output").classList.add("hide");$("generated-files").innerHTML="";$("generated-files").classList.add("hide");$("image-preview").innerHTML="";pendingImages=[];const answer=msg("assistant","");answer.classList.add("streaming");let started=Date.now(),statusText="Conectando ao modelo…";$("activity").textContent=statusText;const timer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);$("activity").textContent=statusText+" · "+seconds+"s"},1000);if(voiceModeActive){voiceTurnPending=true;if(voiceRecognition){try{voiceRecognition.stop()}catch{}}}try{const attachments=await Promise.all(files.map(readImage));const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+token},body:JSON.stringify({message:t,history,attachments,teams:selectedAgentTeams()})});if(!r.ok)throw Error((await r.text())||"HTTP "+r.status);const reader=r.body.getReader(),decoder=new TextDecoder();let buffer="",final="",streamed="";while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop();for(const block of blocks){const event=block.match(/^event: (.+)$/m)?.[1],raw=block.match(/^data: (.+)$/m)?.[1];if(!event||!raw)continue;const data=JSON.parse(raw);if(event==="terminal")terminalEvent(data);if(event==="tool_result"&&data.result?.created)showGeneratedFile(data.result.created,data.result.format||"Arquivo");if(event==="status"){statusText=data.message||"Executando…";$("activity").textContent=statusText;}if(event==="team_agent"){$("team-status").textContent=data.name+ (data.state==="running"?" · trabalhando…":data.state==="success"?" · concluído":" · falhou: "+(data.error||"erro"))}if(event==="delta"){streamed+=data.text||"";answer.textContent=streamed;$("messages").scrollTop=$("messages").scrollHeight}if(event==="assistant"){final=data.answer||"";answer.textContent=final}if(event==="error")throw Error(data.message)}}if(!final&&!streamed)answer.textContent="A execução terminou sem resposta textual.";history.push({role:"user",content:t||"Analise estas imagens de referência."},{role:"assistant",content:final||streamed||answer.textContent})}catch(e){answer.textContent="Erro: "+e.message}finally{clearInterval(timer);answer.classList.remove("streaming");busy=false;$("send").disabled=false;$("attach").disabled=false;$("activity").textContent="Pronto";$("messages").scrollTop=$("messages").scrollHeight;addMessageActions(answer,t);if(voiceModeActive){voiceTurnPending=false;if(answer.textContent&&!answer.textContent.startsWith("Erro:"))speakVoiceResponse(answer.textContent);else startVoiceRecognition()}}}
+
+/* Voice mode: native browser speech recognition + local browser speech synthesis.
+   The speech provider can be replaced later without changing chat transport. */
+function voiceStatus(message){
+  const node=$("voice-status");
+  if(node)node.textContent=message||"";
+}
+function updateVoiceButton(){
+  const button=$("voice-toggle");
+  if(!button)return;
+  button.classList.toggle("active",voiceModeActive);
+  button.setAttribute("aria-pressed",voiceModeActive?"true":"false");
+  button.title=voiceModeActive?"Desativar modo de voz":"Ativar modo de voz";
+  button.setAttribute("aria-label",button.title);
+  button.textContent=voiceModeActive?"■":"🎙";
+}
+function stopVoiceRecognition(){
+  if(voiceRestartTimer){clearTimeout(voiceRestartTimer);voiceRestartTimer=null}
+  if(voiceRecognition){const current=voiceRecognition;voiceRecognition=null;try{current.abort()}catch{}}
+}
+function startVoiceRecognition(){
+  if(!voiceModeActive||busy||voiceSpeaking||voiceTurnPending)return;
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    voiceStatus("A resposta falada está ativa, mas este navegador não oferece reconhecimento de fala. No Firefox, a entrada por microfone depende do provedor de voz que será conectado depois; para testar a entrada nativa, use Chromium/Chrome.");
+    return;
+  }
+  stopVoiceRecognition();
+  const recognition=new SpeechRecognition();
+  voiceRecognition=recognition;
+  recognition.lang="pt-BR";
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.maxAlternatives=1;
+  recognition.onstart=()=>voiceStatus("Ouvindo… fale normalmente. Toque no microfone para encerrar.");
+  recognition.onresult=(event)=>{
+    let finalText="",interimText="";
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const text=event.results[i][0]&&event.results[i][0].transcript||"";
+      if(event.results[i].isFinal)finalText+=text+" ";
+      else interimText+=text;
+    }
+    if(interimText)voiceStatus("Ouvindo: "+interimText);
+    if(finalText.trim()){
+      voiceTurnPending=true;
+      voiceStatus("Entendi. Enviando sua mensagem…");
+      try{recognition.stop()}catch{}
+      send(finalText.trim());
+    }
+  };
+  recognition.onerror=(event)=>{
+    if(event.error==="not-allowed"||event.error==="service-not-allowed"){
+      voiceModeActive=false;voiceTurnPending=false;updateVoiceButton();
+      voiceStatus("Permissão de microfone negada. Libere o microfone nas permissões do navegador e tente novamente.");
+    }else if(event.error!=="aborted"&&event.error!=="no-speech"){
+      voiceStatus("O reconhecimento de voz encontrou um problema: "+event.error+".");
+    }
+  };
+  recognition.onend=()=>{
+    if(voiceRecognition===recognition)voiceRecognition=null;
+    if(voiceModeActive&&!voiceTurnPending&&!voiceSpeaking&&!busy){
+      voiceRestartTimer=setTimeout(startVoiceRecognition,450);
+    }
+  };
+  try{recognition.start()}catch(error){
+    voiceRecognition=null;
+    voiceStatus("Não foi possível iniciar o microfone: "+error.message);
+  }
+}
+function speakVoiceResponse(text){
+  if(!voiceModeActive)return;
+  if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window)){
+    voiceStatus("A síntese de voz não está disponível neste navegador.");
+    return;
+  }
+  const clean=String(text||"").trim();
+  if(!clean){startVoiceRecognition();return}
+  stopVoiceRecognition();
+  window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(clean);
+  utterance.lang="pt-BR";
+  utterance.rate=1;
+  utterance.pitch=1.04;
+  utterance.volume=1;
+  const voices=window.speechSynthesis.getVoices();
+  const portuguese=voices.filter(v=>/^pt(-|_)?br/i.test(v.lang)||/portugu[eê]s.*brasil/i.test(v.name));
+  const feminine=portuguese.find(v=>/(female|femin|luciana|maria|camila|francisca|helena|vitoria|vitória)/i.test(v.name));
+  if(feminine||portuguese[0])utterance.voice=feminine||portuguese[0];
+  utterance.onstart=()=>{voiceSpeaking=true;voiceStatus("Nexo está falando…")};
+  utterance.onend=()=>{voiceSpeaking=false;if(voiceModeActive){voiceStatus("Resposta concluída. Ouvindo novamente…");startVoiceRecognition()}};
+  utterance.onerror=()=>{voiceSpeaking=false;if(voiceModeActive){voiceStatus("Não foi possível reproduzir a resposta neste dispositivo.");startVoiceRecognition()}};
+  window.speechSynthesis.speak(utterance);
+}
+function toggleVoiceMode(){
+  if(voiceModeActive){
+    voiceModeActive=false;voiceTurnPending=false;voiceSpeaking=false;
+    stopVoiceRecognition();
+    if("speechSynthesis" in window)window.speechSynthesis.cancel();
+    document.body.classList.remove("voice-mode-active");
+    updateVoiceButton();
+    voiceStatus("Modo de voz desativado.");
+    return;
+  }
+  voiceModeActive=true;
+  document.body.classList.add("voice-mode-active");
+  updateVoiceButton();
+  if(!("speechSynthesis" in window)){
+    voiceStatus("Este navegador não oferece reprodução de voz. O modo de voz não pode ser iniciado.");
+    voiceModeActive=false;updateVoiceButton();return;
+  }
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    voiceStatus("Modo de voz ativado para respostas faladas. A entrada por microfone não é suportada pelo navegador atual; o adaptador para o seu modelo de voz será ligado depois.");
+    return;
+  }
+  startVoiceRecognition();
+}
+$("voice-toggle").addEventListener("click",toggleVoiceMode);
+window.addEventListener("beforeunload",()=>{
+  stopVoiceRecognition();
+  if("speechSynthesis" in window)window.speechSynthesis.cancel();
+});
+
 for(const id of ["team-programming","team-cybersecurity"])$(id).onchange=()=>{$("team-status").textContent="Equipes selecionadas: "+(selectedAgentTeams().join(" + ")||"nenhuma")};
 $("send").onclick=()=>send($("prompt").value);$("prompt").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send($("prompt").value)}};document.querySelectorAll("[data-prompt]").forEach(b=>b.onclick=()=>send(b.dataset.prompt));
 $("attach").onclick=()=>$("images").click();$("images").onchange=()=>{for(const file of [...$("images").files]){if(!file.type.startsWith("image/"))continue;if(file.size>8*1024*1024){$("upload-status").textContent=file.name+" excede 8 MB.";continue}if(pendingImages.length>=6)break;if(!pendingImages.some(x=>x.name===file.name&&x.size===file.size))pendingImages.push(file)}$("images").value="";renderPending()};
