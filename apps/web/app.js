@@ -188,6 +188,22 @@ async function loadMcp(){try{const a=await api("/mcp");$("mcplist").innerHTML=""
 $("addmcp").onclick=async()=>{const authTab=window.open("about:blank","_blank");try{const result=await api("/mcp","POST",{name:$("mname").value,url:$("murl").value});if(result.authorizationUrl&&authTab)authTab.location=result.authorizationUrl;else if(authTab)authTab.close();$("mcp-status").textContent=result.message||"Servidor registrado.";loadMcp()}catch(e){if(authTab)authTab.close();$("mcp-status").textContent=e.message}};
 
 
+// Collapsible saved-sites dock; its launcher remains visible when collapsed.
+(()=>{
+  const rail=$("bookmark-rail"),toggle=$("bookmark-rail-toggle");
+  if(!rail||!toggle)return;
+  const setOpen=open=>{
+    rail.classList.toggle("is-open",open);
+    toggle.setAttribute("aria-expanded",String(open));
+    toggle.setAttribute("aria-label",open?"Recolher sites favoritos":"Mostrar sites favoritos");
+    toggle.title=open?"Recolher sites favoritos":"Mostrar sites favoritos";
+    toggle.textContent=open?"×":"★";
+  };
+  toggle.addEventListener("click",()=>setOpen(!rail.classList.contains("is-open")));
+  document.addEventListener("keydown",event=>{if(event.key==="Escape"&&rail.classList.contains("is-open")){setOpen(false);toggle.focus()}});
+  setOpen(false);
+})();
+
 // Persistent website bookmarks: floating icon dock on the right edge.
 async function loadBookmarks(){
   try{
