@@ -213,7 +213,8 @@
       this._started = true;
       const requestedSize = Number(this.getAttribute("size")) || 180;
       this._size = Math.max(48, Math.min(requestedSize, Math.round(window.innerWidth * 0.42)));
-      const requestedSpeed = Number(this.getAttribute("speed"));
+      const speedAttribute = this.getAttribute("speed");
+      const requestedSpeed = speedAttribute === null ? 1 : Number(speedAttribute);
       this._speed = Number.isFinite(requestedSpeed) ? Math.max(0, requestedSpeed) : 1;
       this.style.width = this._size + "px";
       this.style.height = this._size + "px";
